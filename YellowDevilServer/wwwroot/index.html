@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yellow Devil — Sala</title>
+<style>
+  body { background:#0a0a0a; color:#fcd018; font-family:'Courier New',monospace; text-align:center; margin-top:2em; }
+  h1 { font-size:1.2rem; letter-spacing:.35em; }
+  canvas { image-rendering:pixelated; background:#000; border:2px solid #333; width:min(624px, 92vw); }
+  #status { min-height:1.5em; color:#ccc; margin:1em; }
+  button { background:#fcd018; color:#000; border:none; padding:.8em 2em; font-family:inherit; font-weight:bold; font-size:1rem; cursor:pointer; }
+  button:disabled { background:#555; color:#999; cursor:default; }
+</style>
+</head>
+<body>
+<h1>YELLOW DEVIL</h1>
+<div><canvas id="c" width="52" height="36"></canvas></div>
+<div id="status">Conectando ao servidor...</div>
+<button id="botao" disabled>INVOCAR O MONSTRO</button>
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+const status = document.getElementById('status');
+const botao = document.getElementById('botao');
+
+// Mesma paleta do terminal: Y corpo, O sombra, W olho, R pupila
+const cores = { Y:'#fcd018', O:'#c07800', W:'#ffffff', R:'#e63030' };
+let segurando = false;
+
+const ws = new WebSocket(`ws://${location.host}/ws`);
+ws.onopen = () => { status.textContent = 'Conectado! Peça o monstro quando ele estiver no servidor.'; botao.disabled = false; };
+ws.onclose = () => { status.textContent = 'Conexão perdida — recarregue a página.'; botao.disabled = true; };
+ws.onmessage = e => {
+  const m = JSON.parse(e.data);
+  if (m.t === 'p') {                       // chegou um pixel
+    ctx.fillStyle = cores[m.c] || cores.Y;
+    ctx.fillRect(m.x, m.y, 1, 1);
+  } else if (m.t === 'x') {                // um pixel foi embora
+    ctx.clearRect(m.x, m.y, 1, 1);
+  } else if (m.t === 'take') {             // você está com o monstro
+    segurando = true;
+    botao.textContent = 'DEVOLVER AO SERVIDOR';
+    status.textContent = 'O Yellow Devil está AQUI!';
+  } else if (m.t === 'gone') {             // ele foi embora
+    segurando = false;
+    botao.textContent = 'INVOCAR O MONSTRO';
+    status.textContent = 'Ele se foi...';
+  } else if (m.t === 'm') {                // aviso do servidor
+    status.textContent = m.s;
+  }
+};
+botao.onclick = () => ws.send(segurando ? 'release' : 'claim');
+</script>
+</body>
+</html>
