@@ -10,6 +10,18 @@ Feito por Ramon Couto Santos & Aaron Goldberg Guerra.
 
 #### Projeto feito para a disciplina Desenvolvimento de Sistemas Distribuídos
 
+> **Este repositório entrega DOIS trabalhos, com o mesmo tema (o teletransporte do
+> Yellow Devil), cada um com sua tecnologia de comunicação distribuída:**
+>
+> | Trabalho | Tecnologia | Onde está | README |
+> |----------|-----------|-----------|--------|
+> | **gRPC** (RPC + Protocol Buffers) | streaming gRPC | [`YellowDevilServer/`](YellowDevilServer/) + [`YellowDevilClient/`](YellowDevilClient/) | **este arquivo** |
+> | **MOM** (Middleware Orientado a Mensagens) | filas RabbitMQ (AMQP + STOMP) | [`MomOrchestrator/`](MomOrchestrator/), [`MomConsumer/`](MomConsumer/), [`MomFront/`](MomFront/) | [`README-MOM.md`](README-MOM.md) |
+>
+> No gRPC as partículas do boss trafegam como **mensagens de um stream RPC** entre
+> cliente e servidor; no MOM as mesmas partículas viram **mensagens numa fila** que
+> vários consumidores disputam. Mesmo boss, dois paradigmas de comunicação.
+
 O Yellow Devil (Mega Man, 1987) se desintegra no terminal do cliente e é remontado,
 partícula por partícula, no terminal do servidor — cada partícula é uma mensagem
 gRPC transmitida por streaming. Depois ele pode ser trazido de volta, no sentido inverso.

@@ -3,3 +3,6 @@ obj/
 publish/
 *.user
 .vs/
+
+# Música do boss no front do MOM — baixada à parte, NÃO versionar
+MomFront/assets/*.mp3
