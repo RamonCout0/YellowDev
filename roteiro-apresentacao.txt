@@ -2,10 +2,20 @@
  YELLOW DEVIL — COMANDOS DA APRESENTACAO
 ============================================================
 
-CHECAR BROKER (antes de tudo)
+BROKER — instalar (uma vez so, PowerShell como administrador)
 ------------------------------------------------------------
+choco install rabbitmq -y
+& 'C:\Program Files\RabbitMQ Server\rabbitmq_server-4.3.1\sbin\rabbitmq-plugins.bat' enable rabbitmq_management rabbitmq_web_stomp
+Restart-Service RabbitMQ
+
+BROKER — checar se esta de pe (sempre, antes de rodar as demos)
+------------------------------------------------------------
+Get-Service RabbitMQ | Select Status
 Test-NetConnection 127.0.0.1 -Port 5672
-    -> se False: Start-Service RabbitMQ (terminal como admin)
+
+BROKER — subir se estiver parado (terminal como administrador)
+------------------------------------------------------------
+Start-Service RabbitMQ
 
 
 BUILD (uma vez)
@@ -56,3 +66,44 @@ Navegador:
  PARAR TUDO
 ============================================================
 Ctrl+C em cada aba (o broker continua rodando como servico)
+
+
+============================================================
+ RODANDO NO GITHUB CODESPACES
+============================================================
+
+BROKER — instalar (uma vez so)
+------------------------------------------------------------
+sudo apt-get update -qq
+sudo apt-get install -y rabbitmq-server
+sudo rabbitmq-plugins enable rabbitmq_management rabbitmq_web_stomp
+sudo systemctl enable --now rabbitmq-server
+
+BROKER — checar se esta de pe
+------------------------------------------------------------
+sudo systemctl status rabbitmq-server
+
+BUILD (uma vez)
+------------------------------------------------------------
+cd /workspaces/YellowDev   (ou o path do repo no codespace)
+dotnet build
+
+DEMO 1 — gRPC (abrir 3 terminais integrados / split panes)
+------------------------------------------------------------
+Terminal 1: dotnet run --project YellowDevilServer
+Terminal 2: dotnet run --project YellowDevilClient -- http://localhost:5254 boss
+Terminal 3: dotnet run --project YellowDevilClient -- http://localhost:5254
+
+DEMO 2 — MOM (abrir 4 terminais integrados / split panes)
+------------------------------------------------------------
+Terminal 1: dotnet run --project MomOrchestrator
+Terminal 2: dotnet run --project MomConsumer -- terminal-A
+Terminal 3: dotnet run --project MomConsumer -- terminal-B
+Terminal 4: cd MomFront && python3 -m http.server 8080
+
+PORTAS — expor no navegador (aba "PORTS" do VS Code/Codespaces)
+------------------------------------------------------------
+Forward/abrir as portas: 5255 (gRPC sala), 8080 (front MOM), 15672 (Management UI)
+Clique no icone de globo ao lado da porta para abrir a URL publica gerada
+(nao usa localhost:PORTA direto — o Codespaces troca por uma URL propria)
+Se for compartilhar o link com outra pessoa: botao direito na porta -> Port Visibility -> Public
