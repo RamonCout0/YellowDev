@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>Entrega Yellow Devil — MOM</title>
+<link rel="stylesheet" href="entrega.css" />
+</head>
+<body>
+
+<h1>Yellow Devil MOM</h1>
+<p class="sub">Teletransporte de um chefe de Mega Man (1987) via fila de mensagens (RabbitMQ)</p>
+<p class="autor">Disciplina: Desenvolvimento de Sistemas Distribuídos &nbsp;|&nbsp; Ramon Couto Santos &amp; Aaron Goldberg Guerra</p>
+<hr class="regua" />
+
+<h2>Descrição da solução implementada</h2>
+<p>
+O Yellow Devil, chefe de <i>Mega Man</i> (1987), é famoso por <b>se desmontar em partículas</b>,
+atravessar a tela e <b>se remontar</b> do outro lado. Aqui essa mecânica vira um sistema distribuído:
+cada pixel não-vazio do sprite ASCII 52×36 — <b>1.328 partículas</b> — é <b>uma mensagem</b> publicada
+numa fila do RabbitMQ. Um <b>orquestrador em C#</b> desintegra o boss e publica as partículas
+embaralhadas em <code>devil-particles</code>; <b>consumidores concorrentes</b> disputam a fila e vão
+remontando o boss, cada um desenhando <b>apenas as partículas que pegou</b>: dois terminais C# com
+render ASCII e uma página web em JavaScript com <code>&lt;canvas&gt;</code> e barra de vida. Pelo
+navegador o usuário <b>invoca</b> o boss e <b>atira</b> nele, e essas ações também trafegam pelo broker
+(<code>devil-summons</code> e <code>devil-hits</code>) — logo o front é <b>produtor e consumidor ao mesmo
+tempo</b>. O back-end fala <b>AMQP</b> (5672) e o front fala <b>STOMP sobre WebSocket</b> (15674): duas
+linguagens e dois protocolos sobre o <b>mesmo broker</b> e as <b>mesmas filas</b>.
+</p>
+
+<div class="abordagem">
+  <span class="rot">ABORDAGEM ESCOLHIDA</span>
+  <b>Opção A — Filas de Mensagens</b> (comunicação ponto-a-ponto / <i>work queue</i>),
+  com <b>RabbitMQ</b> como broker real: 1 produtor, filas duráveis e 3 consumidores concorrentes.
+</div>
+
+<h2>Diagrama da comunicação</h2>
+
+<div class="diagrama">
+  <div class="fileira">
+    <div class="caixa">
+      <span class="t">MomFront (JS)</span>
+      <span class="d">navegador · botão INVOCAR<br />PRODUTOR</span>
+    </div>
+    <div class="seta"><b>→</b>STOMP/WS<br />15674</div>
+    <div class="fila">
+      <span class="t">devil-summons</span>
+      <span class="d">fila durável</span>
+    </div>
+    <div class="seta"><b>→</b>AMQP<br />5672</div>
+    <div class="caixa">
+      <span class="t">MomOrchestrator (C#)</span>
+      <span class="d">desintegra o boss<br />PRODUTOR · HP autoritativo</span>
+    </div>
+  </div>
+
+  <div class="descida"><b>↓</b>publica 1.328 partículas (uma por pixel) · AMQP 5672</div>
+
+  <div class="fileira">
+    <div class="fila" style="min-width:210px">
+      <span class="t">devil-particles</span>
+      <span class="d">fila durável · prefetch=1 · ack manual · cada mensagem vai para UM consumidor</span>
+    </div>
+  </div>
+
+  <div class="descida"><b>↓</b>consumidores concorrentes disputam a fila (<i>competing consumers</i>)</div>
+
+  <div class="fileira">
+    <div class="caixa">
+      <span class="t">MomConsumer</span>
+      <span class="d">terminal-A (C#)<br />AMQP · render ASCII</span>
+    </div>
+    <div class="caixa">
+      <span class="t">MomConsumer</span>
+      <span class="d">terminal-B (C#)<br />AMQP · render ASCII</span>
+    </div>
+    <div class="caixa">
+      <span class="t">MomFront</span>
+      <span class="d">navegador (JS)<br />STOMP/WS · canvas</span>
+    </div>
+  </div>
+
+  <p class="legenda">
+    O boss se divide entre os três: cada partícula é desenhada em um só lugar. Se um consumidor cai,
+    as mensagens não confirmadas voltam à fila e são reentregues aos outros.
+  </p>
+</div>
+
+<h2>Justificativa da escolha</h2>
+<p>
+A regra do estudo de caso é que <b>cada partícula seja processada por exatamente um consumidor</b>: se
+duas janelas desenhassem o mesmo pixel, o boss apareceria <i>duplicado</i> em vez de <i>repartido</i>.
+Essa é a definição de <b>fila de trabalho ponto-a-ponto</b> — a fila entrega cada mensagem a um único
+consumidor e distribui a carga entre os que estiverem ativos. Com <code>prefetch=1</code> e <b>ack
+manual</b>, a divisão é justa e a falha fica visível: ao interromper um consumidor no meio do teleporte,
+as mensagens que ele não confirmou <b>voltam para a fila</b> e são <b>reentregues</b> a outro, sem perda.
+Em pub/sub cada assinante receberia uma cópia de <i>todas</i> as partículas e o boss seria montado
+inteiro em cada um — a divisão de trabalho, que é o coração da demonstração, desapareceria. Pub/sub
+serve para <b>notificar todos</b>; nós precisávamos <b>repartir tarefas</b>.
+</p>
+
+<!-- ====================== PÁGINA 2 ====================== -->
+<div class="pagina2">
+
+<h2>Capturas de tela do sistema em funcionamento</h2>
+
+<div class="figura">
+  <img src="../assets/mom-broker.png" alt="Management UI do RabbitMQ com as quatro filas do projeto" />
+</div>
+<p class="cap">
+  Figura 1 — Broker RabbitMQ 4.0.5 em execução (Management UI, <code>localhost:15672</code>): as 4 filas
+  duráveis (<b>D</b>) do estudo de caso. Durante um teleporte, <code>devil-particles</code> está
+  <b>running</b> com <b>544 mensagens na fila</b>, <b>2 unacked</b> — o <code>prefetch=1</code> de cada um
+  dos <b>2 consumidores</b> — e <b>22/s</b> de entrega e de ack.
+</p>
+
+<div class="figura">
+  <!-- Basta salvar o print em assets/mom-terminais.png e rodar ./docs/gerar-pdf.sh:
+       se o arquivo existir ele entra aqui; se não, cai no aviso vermelho abaixo. -->
+  <img id="fig2" src="../assets/mom-terminais.png"
+       alt="terminal-A com 666 e terminal-B com 662 das 1328 partículas do boss"
+       onerror="this.remove(); document.getElementById('falta2').style.display='flex';" />
+  <div class="falta" id="falta2" style="display:none">
+    <b>[ FALTA O PRINT 2 — TERMINAIS EM FUNCIONAMENTO ]</b>
+    terminal-A e terminal-B lado a lado, cada um com <b>metade do boss</b> desenhada,
+    e o log do orquestrador ao fundo.<br />
+    Melhor momento: logo após um Ctrl+C, com a linha <b>&lt;&lt; REENTREGUE apos falha!</b> visível.
+  </div>
+</div>
+<p class="cap">
+  Figura 2 — Dois consumidores concorrentes disputando <code>devil-particles</code> no mesmo teleporte
+  (<i>stream</i> 1784158509264): <b>terminal-A</b> (direita) recebeu <b>666</b> partículas e <b>terminal-B</b>
+  (esquerda) recebeu <b>662</b> — <b>666 + 662 = 1.328</b>, o total exato do sprite. Cada um desenha só a
+  parte que pegou, por isso o boss aparece incompleto nos dois: <b>nenhuma partícula foi processada duas
+  vezes nem se perdeu</b>.
+</p>
+
+<h2>Respostas objetivas</h2>
+
+<div class="pergunta">
+  <p class="q">a) Qual paradigma foi implementado?</p>
+  <p>
+    Middleware Orientado a Mensagens (MOM) com <b>filas ponto-a-ponto</b> (<i>work queue</i>) no RabbitMQ —
+    Opção A. Um produtor (o orquestrador C#) publica em filas duráveis e consumidores concorrentes
+    (dois terminais C# via AMQP e o front JavaScript via STOMP/WebSocket) disputam a fila
+    <code>devil-particles</code>. Comunicação assíncrona, com <code>prefetch=1</code> e ack manual.
+  </p>
+</div>
+
+<div class="pergunta">
+  <p class="q">b) Por que esse paradigma é adequado ao estudo de caso escolhido?</p>
+  <p>
+    Porque cada partícula precisa ser tratada <b>uma única vez</b> e o trabalho deve ser <b>repartido</b>
+    entre os consumidores. A fila faz exatamente isso: entrega cada mensagem a um só consumidor, balanceia
+    a carga entre os ativos e, com ack manual, <b>reentrega</b> o que um consumidor deixou de confirmar ao
+    falhar. Também desacopla no tempo — o orquestrador publica mesmo sem nenhum consumidor online.
+  </p>
+</div>
+
+<div class="pergunta">
+  <p class="q">c) Quais seriam as principais mudanças caso fosse utilizada a outra abordagem?</p>
+  <p>
+    Trocaríamos a fila direta por uma <b>exchange <code>fanout</code></b>, e cada assinante teria a
+    <b>sua própria fila</b> ligada a ela. Consequência: <b>todos</b> receberiam <b>todas</b> as partículas —
+    o boss seria montado inteiro em cada assinante, em vez de dividido. Deixaria de existir "processado
+    exatamente uma vez" e divisão de carga; viraria um modelo de broadcast/notificação.
+  </p>
+</div>
+
+<div class="pergunta">
+  <p class="q">d) Como o broker contribui para o desacoplamento entre os componentes da aplicação?</p>
+  <p>
+    O RabbitMQ fica <b>no meio</b>: produtores e consumidores só conhecem o <b>nome da fila</b>, nunca uns
+    aos outros. Isso desacopla <b>no tempo</b> (filas duráveis guardam as mensagens até alguém consumir),
+    <b>no espaço</b> (ninguém precisa saber endereço ou porta de ninguém, só do broker) e <b>em linguagem e
+    protocolo</b>: o C# fala AMQP e o navegador fala STOMP/WebSocket sobre as <b>mesmas</b> filas.
+  </p>
+</div>
+
+</div><!-- /pagina2 -->
+
+</body>
+</html>

@@ -1,4 +1,10 @@
 <Solution>
-  <Project Path="YellowDevilClient/YellowDevilClient.csproj" />
-  <Project Path="YellowDevilServer/YellowDevilServer.csproj" />
+  <Folder Name="/gRPC/">
+    <Project Path="YellowDevilServer/YellowDevilServer.csproj" />
+    <Project Path="YellowDevilClient/YellowDevilClient.csproj" />
+  </Folder>
+  <Folder Name="/MOM/">
+    <Project Path="MomOrchestrator/MomOrchestrator.csproj" />
+    <Project Path="MomConsumer/MomConsumer.csproj" />
+  </Folder>
 </Solution>

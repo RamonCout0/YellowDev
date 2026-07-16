@@ -1,105 +1,130 @@
 ![Capa do projeto by Ramon Couto Santos](assets/capagRPC.png)
 
-
-
 ```
 Feito por Ramon Couto Santos & Aaron Goldberg Guerra.
 ```
 
-# Yellow Devil gRPC — Teletransporte entre terminais
+# Yellow Devil — o mesmo boss, dois paradigmas de comunicação distribuída
 
-#### Projeto feito para a disciplina Desenvolvimento de Sistemas Distribuídos
+#### Projetos da disciplina Desenvolvimento de Sistemas Distribuídos
 
-O Yellow Devil (Mega Man, 1987) se desintegra no terminal do cliente e é remontado,
-partícula por partícula, no terminal do servidor — cada partícula é uma mensagem
-gRPC transmitida por streaming. Depois ele pode ser trazido de volta, no sentido inverso.
+O **Yellow Devil** é o chefe de *Mega Man* (1987) famoso por **se desmontar em
+partículas**, atravessar a tela e **se remontar** do outro lado. Este repositório usa
+essa mecânica como metáfora de sistema distribuído e entrega **dois trabalhos** com o
+**mesmo tema**, trocando apenas a tecnologia de comunicação:
 
-- **Contrato:** [`YellowDevilServer/Protos/Yellow_devil.proto`](YellowDevilServer/Protos/Yellow_devil.proto)
-- **Servidor:** [`YellowDevilServer/`](YellowDevilServer/) — ASP.NET Core (Grpc.AspNetCore)
-- **Cliente:** [`YellowDevilClient/`](YellowDevilClient/) — console (Grpc.Net.Client)
+| # | Trabalho | O que a partícula do boss vira | Tecnologia | Comando | README |
+|---|----------|-------------------------------|------------|---------|--------|
+| 1 | **gRPC** | uma mensagem de um **stream RPC** | Protocol Buffers + HTTP/2 | `devil grpc` | [README-GRPC.md](README-GRPC.md) |
+| 2 | **MOM** | uma mensagem **numa fila** disputada | RabbitMQ (AMQP + STOMP) | `devil mom` | [README-MOM.md](README-MOM.md) |
 
-## Requisitos
+O sprite é o mesmo, o render ASCII é o mesmo, as ~1328 partículas são as mesmas. **Só o
+meio de transporte muda** — e é exatamente essa a comparação que as duas apresentações
+querem mostrar.
 
-- [.NET SDK 10.0](https://dotnet.microsoft.com/download) ou superior
-- Terminal com pelo menos 60 colunas por 25 linhas (Windows Terminal recomendado)
+---
 
-## Instalar dependências, gerar os stubs e compilar
+## Começando (3 comandos)
+
+**Pré-requisitos:** [.NET SDK 10.0](https://dotnet.microsoft.com/download), Python 3
+(só serve a pasta do front no MOM) e um terminal de 60×25 no mínimo.
+
+### Windows (notebook da apresentação)
+
+```powershell
+.\devil.cmd broker    # uma vez só, como ADMINISTRADOR: instala o RabbitMQ (via Chocolatey)
+.\devil.cmd grpc      # Demo 1
+.\devil.cmd mom       # Demo 2
+```
+
+> **Use o `devil.cmd`, não o `.ps1` direto.** Duplo-clique num `.ps1` abre o **Bloco de
+> Notas** em vez de executar, e a política de execução do PowerShell costuma bloquear
+> scripts locais. O `.cmd` é um atalho que chama o `devil.ps1` com a política liberada.
+
+### Linux (desenvolvimento)
 
 ```bash
-dotnet build
+./devil.sh broker     # uma vez só: apt install rabbitmq-server + plugins
+./devil.sh grpc       # Demo 1
+./devil.sh mom        # Demo 2
 ```
 
-> Um único comando faz as três coisas: restaura os pacotes NuGet, gera os stubs
-> e compila. Os stubs são gerados automaticamente pelo compilador do Protocol
-> Buffers (pacote `Grpc.Tools`) a partir do `.proto`, em:
->
-> - `YellowDevilServer/obj/Debug/net10.0/Protos/YellowDevil.cs` — classes das mensagens
-> - `YellowDevilServer/obj/Debug/net10.0/Protos/YellowDevilGrpc.cs` — classe base do serviço
-> - `YellowDevilClient/obj/Debug/net10.0/YellowDevil.cs` — classes das mensagens
-> - `YellowDevilClient/obj/Debug/net10.0/YellowDevilGrpc.cs` — stub do cliente
+> **Sem Docker.** O broker roda **nativo**, como serviço do sistema: no Windows via
+> **Chocolatey** (`choco install rabbitmq`, que já traz o Erlang), no Linux via `apt`. O
+> `broker` só precisa rodar **uma vez** — depois ele sobe sozinho junto com a máquina.
+> O RabbitMQ **não tem pacote winget**; se não quiser o Chocolatey, dá para usar o
+> [instalador oficial](https://www.rabbitmq.com/docs/install-windows) (Erlang primeiro).
 
-## Executar (tudo no mesmo PC)
+### Os outros comandos
 
-**Terminal 1 — servidor** (gRPC em `0.0.0.0:5254`; página da sala em `0.0.0.0:5255`):
+| Comando | O que faz |
+|---------|-----------|
+| `devil grpc` | compila e abre **3 abas**: servidor gRPC + cliente com o boss + cliente vazio |
+| `devil mom` | confere o broker, compila e abre **4 abas**: orquestrador + terminal-A + terminal-B + front web (e abre o navegador no front e na Management UI) |
+| `devil broker` | instala/sobe o RabbitMQ e habilita os plugins `management` e `web_stomp` |
+| `devil status` | mostra quais portas estão de pé |
+| `devil stop` | derruba as demos (o broker continua) |
+
+## Portas
+
+| Porta | Quem usa | Demo |
+|-------|----------|------|
+| 5254 | clientes gRPC (HTTP/2) | gRPC |
+| 5255 | página da sala (HTTP/1.1 + WebSocket) | gRPC |
+| 5672 | back-end C# → broker (AMQP) | MOM |
+| 15672 | Management UI do RabbitMQ (`guest`/`guest`) | MOM |
+| 15674 | front JS → broker (STOMP sobre WebSocket) | MOM |
+| 8080 | `http.server` que serve o `MomFront/` | MOM |
+
+## Estrutura
+
+```
+devil.sh / devil.ps1        lançador das duas demos (Linux / Windows)
+YellowDev.slnx              solution: pasta gRPC/ e pasta MOM/
+
+YellowDevilServer/          [gRPC] servidor ASP.NET Core (Grpc.AspNetCore)
+  Protos/yellow_devil.proto        >> o CONTRATO (a peça central do trabalho 1)
+  Services/YellowDevilService.cs   implementação das 2 RPCs + canal WebSocket da sala
+  wwwroot/index.html               página da sala (modo navegador)
+YellowDevilClient/          [gRPC] cliente de console (Grpc.Net.Client)
+
+MomOrchestrator/            [MOM] produtor: desintegra o boss e guarda o HP autoritativo
+MomConsumer/                [MOM] consumidor de terminal (render ASCII)
+MomFront/                   [MOM] front JS: produtor E consumidor (canvas + STOMP/WS)
+
+Entrega_YellowDevil_gRPC.pdf   PDF de entrega do trabalho 1 (2 páginas)
+Entrega_YellowDevil_MOM.pdf    PDF de entrega do trabalho 2 (2 páginas)
+Apresentacao_YellowDevil.pdf   slides 16:9 dos DOIS trabalhos, para projetar na sala
+docs/                          as fontes desses 3 PDFs  ->  ./docs/gerar-pdf.sh regera
+assets/                        capa e capturas de tela
+```
+
+## Os PDFs
+
+| Arquivo | Para que serve |
+|---------|----------------|
+| [Entrega_YellowDevil_gRPC.pdf](Entrega_YellowDevil_gRPC.pdf) | entrega do trabalho 1 no Moodle — problema, diagrama, 2 capturas, justificativa |
+| [Entrega_YellowDevil_MOM.pdf](Entrega_YellowDevil_MOM.pdf) | entrega do trabalho 2 no Moodle — solução, abordagem, capturas, as 4 respostas |
+| [Apresentacao_YellowDevil.pdf](Apresentacao_YellowDevil.pdf) | **os slides da sala** — 20 slides cobrindo os dois trabalhos, com o contrato, os diagramas e os comandos dentro |
+
+Os três saem de `docs/` com **um comando**:
 
 ```bash
-dotnet run --project YellowDevilServer
+./docs/gerar-pdf.sh
 ```
 
-**Terminal 2 — cliente que começa com o monstro** (flag `boss`):
+> O gerador **falha de propósito** se uma entrega passar de 2 páginas (é a regra do
+> trabalho) ou se um slide transbordar para uma página extra.
 
-```bash
-dotnet run --project YellowDevilClient -- http://localhost:5254 boss
-```
+## Os dois paradigmas, lado a lado
 
-**Terminal 3 — cliente vazio** (recebe o monstro quando invocar):
+Esta é a comparação para responder o professor nas duas apresentações:
 
-```bash
-dotnet run --project YellowDevilClient -- http://localhost:5254
-```
-
-## Executar em PCs diferentes (mesma rede)
-
-1. No PC servidor, descubra o IP local e libere a porta no firewall
-   (PowerShell **como administrador** — só na primeira vez):
-
-```bash
-ipconfig
-netsh advfirewall firewall add rule name="YellowDevil gRPC" dir=in action=allow protocol=TCP localport=5254,5255
-dotnet run --project YellowDevilServer
-```
-
-2. Em cada PC cliente (clone o repositório e use o IP do servidor):
-
-```bash
-dotnet run --project YellowDevilClient -- http://192.168.0.10:5254 boss
-```
-
-> Apenas **um** cliente deve usar a flag `boss` (é ele que nasce com o monstro).
-> Os demais rodam sem a flag e começam vazios.
-
-## Modo sala de aula (navegador — sem instalar nada)
-
-Qualquer pessoa na mesma rede (inclusive pelo celular) abre no navegador:
-
-```
-http://IP_DO_SERVIDOR:5255
-```
-
-O botão **INVOCAR O MONSTRO** puxa o Yellow Devil do servidor para a página, e
-**DEVOLVER AO SERVIDOR** manda ele de volta. Não precisa de .NET, instalação nem
-permissão de administrador — só o PC do servidor precisa liberar as portas no firewall.
-
-> **Wi-Fi de instituição:** algumas redes isolam os dispositivos entre si (client
-> isolation) mesmo estando na mesma rede — nesse caso ninguém alcança o IP do
-> servidor. Teste com antecedência; se falhar, use o hotspot do celular do
-> apresentador como rede local no dia.
-
-## Controles (no terminal do cliente)
-
-| Tecla | Ação |
-|-------|------|
-| `ENTER` (com o monstro) | Teleporta o Yellow Devil para o servidor |
-| `ENTER` (sem o monstro) | Invoca o monstro do servidor — o próximo que pedir, leva |
-| `sair` + `ENTER` | Encerra o cliente |
-
+| | **gRPC** (trabalho 1) | **MOM** (trabalho 2) |
+|--|----------------------|----------------------|
+| Acoplamento | cliente **conhece o endereço** do servidor | ninguém conhece ninguém — só o **nome da fila** |
+| Tempo | **síncrono**: os dois têm que estar online juntos | **assíncrono**: a fila durável guarda a mensagem |
+| Entrega | ponta a ponta, **1 cliente ↔ 1 servidor** | **N consumidores disputam**; cada mensagem vai para **um** |
+| Contrato | `.proto` **tipado**, stub gerado pelo compilador | JSON por convenção (camelCase nos dois lados) |
+| Se o outro lado cai | o stream **quebra**, a RPC dá erro | a mensagem **volta pra fila** e é **reentregue** |
+| Bom para | chamada remota **tipada e de baixa latência** | **repartir trabalho** e desacoplar produtor de consumidor |
