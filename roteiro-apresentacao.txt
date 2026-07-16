@@ -83,27 +83,10 @@ BROKER — checar se esta de pe
 ------------------------------------------------------------
 sudo systemctl status rabbitmq-server
 
-BUILD (uma vez)
-------------------------------------------------------------
-cd /workspaces/YellowDev   (ou o path do repo no codespace)
-dotnet build
+DEMOS — mesmos comandos das secoes acima (dotnet run / python3 -m http.server),
+cada um em um terminal integrado separado.
 
-DEMO 1 — gRPC (abrir 3 terminais integrados / split panes)
+PORTAS — aba "PORTS" do VS Code/Codespaces
 ------------------------------------------------------------
-Terminal 1: dotnet run --project YellowDevilServer
-Terminal 2: dotnet run --project YellowDevilClient -- http://localhost:5254 boss
-Terminal 3: dotnet run --project YellowDevilClient -- http://localhost:5254
-
-DEMO 2 — MOM (abrir 4 terminais integrados / split panes)
-------------------------------------------------------------
-Terminal 1: dotnet run --project MomOrchestrator
-Terminal 2: dotnet run --project MomConsumer -- terminal-A
-Terminal 3: dotnet run --project MomConsumer -- terminal-B
-Terminal 4: cd MomFront && python3 -m http.server 8080
-
-PORTAS — expor no navegador (aba "PORTS" do VS Code/Codespaces)
-------------------------------------------------------------
-Forward/abrir as portas: 5255 (gRPC sala), 8080 (front MOM), 15672 (Management UI)
-Clique no icone de globo ao lado da porta para abrir a URL publica gerada
-(nao usa localhost:PORTA direto — o Codespaces troca por uma URL propria)
-Se for compartilhar o link com outra pessoa: botao direito na porta -> Port Visibility -> Public
+Forward: 5255 (gRPC sala), 8080 (front MOM), 15672 (Management UI)
+Usar a URL publica que aparece la, nao localhost:PORTA
