@@ -56,3 +56,78 @@ Navegador:
  PARAR TUDO
 ============================================================
 Ctrl+C em cada aba (o broker continua rodando como servico)
+
+
+============================================================
+ PLANO B — RODAR NO GITHUB CODESPACES
+============================================================
+Funciona, mas ABRA O CODESPACE NO VS CODE DESKTOP
+("Open in VS Code Desktop"), NAO no navegador.
+
+Motivo: o front do MOM conecta em ws://localhost:15674 e a
+sala do gRPC usa ws://<host>/ws. No Desktop as portas viram
+localhost de verdade e os dois funcionam. No Codespaces pelo
+navegador as portas viram https://...app.github.dev e o ws://
+e bloqueado (mixed content) -> as duas telas web quebram.
+Os terminais (2 consumidores + orquestrador) funcionam nos
+dois casos.
+
+O devil.sh NAO ajuda aqui: "broker" usa systemctl (nao existe
+no container) e "grpc"/"mom" procuram terminal grafico. No
+Codespaces e tudo na mao, com os comandos abaixo.
+
+
+PASSO 1 — .NET 10 (a imagem padrao nao tem)
+------------------------------------------------------------
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
+export PATH="$HOME/.dotnet:$PATH"
+echo 'export PATH="$HOME/.dotnet:$PATH"' >> ~/.bashrc
+dotnet --version        # tem que dizer 10.x
+
+
+PASSO 2 — RabbitMQ (so para a Demo 2)
+------------------------------------------------------------
+sudo apt-get update
+sudo apt-get install -y rabbitmq-server
+    -> o "invoke-rc.d ... failed" no fim e ESPERADO (sem systemd)
+
+sudo rabbitmq-plugins enable rabbitmq_management rabbitmq_web_stomp
+sudo service rabbitmq-server start
+    -> se o service falhar:  sudo -u rabbitmq rabbitmq-server -detached
+
+Conferir (o equivalente do Test-NetConnection):
+    ./devil.sh status
+    -> 5672, 15672 e 15674 tem que aparecer de pe
+
+
+PASSO 3 — BUILD (uma vez)
+------------------------------------------------------------
+dotnet build
+
+
+PASSO 4 — AS DEMOS
+------------------------------------------------------------
+Mesmos comandos das secoes DEMO 1 e DEMO 2 la em cima, um por
+terminal do VS Code (icone + / split, em vez de abas do SO).
+
+
+PASSO 5 — PORTAS (aba PORTS do VS Code)
+------------------------------------------------------------
+Encaminhar / conferir: 5255, 8080, 15672, 15674
+    -> 15674 precisa estar encaminhada mesmo sem abrir no
+       navegador: e por ela que o front do MOM fala STOMP
+    -> se alguma porta so aparecer depois que o processo sobe,
+       clique "Forward a Port" e adicione na mao
+
+Depois disso os links do roteiro valem igual:
+    http://localhost:8080    -> front da demo
+    http://localhost:15672   -> Management UI (guest/guest)
+    http://localhost:5255    -> sala do gRPC
+
+
+SE O FRONT WEB NAO CONECTAR
+------------------------------------------------------------
+Plano B sem navegador (publica direto na fila):
+    ./devil.sh invocar terminal
+-> o boss se divide entre terminal-A e terminal-B do mesmo
+   jeito, e da para tirar print / apresentar so com terminal.
