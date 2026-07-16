@@ -1,133 +1,244 @@
 ============================================================
- YELLOW DEVIL — COMANDOS DA APRESENTACAO
+ YELLOW DEVIL — ROTEIRO DA APRESENTACAO (passo a passo)
 ============================================================
 
-CHECAR BROKER (antes de tudo)
+Sao DUAS demos independentes, apresentadas nesta ordem:
+
+  BLOCO 1 — gRPC ...... NAO precisa de RabbitMQ (mais simples)
+  BLOCO 2 — MOM ....... precisa do RabbitMQ (instalacao inclusa)
+
+Em cada bloco ha instrucoes para: Windows, Linux e Codespaces.
+Siga so as do seu ambiente.
+
+"ABA" ou "TERMINAL" = um terminal integrado novo do VS Code
+(menu Terminal > New Terminal, ou o botao "+").
+
+
+============================================================
+ PREPARACAO (vale para os dois blocos — uma vez so)
+============================================================
+
+Compilar o projeto, na raiz dele:
+
+    Windows:            cd C:\Users\haji\Documents\YellowDev
+                        dotnet build
+
+    Linux/Codespaces:   dotnet build
+
+
+
+
+============================================================
+============================================================
+ BLOCO 1 — DEMO gRPC
+============================================================
+============================================================
+
+Nao precisa de broker nem de instalacao extra. So o dotnet.
+
+1.1 RODANDO LOCAL (Windows ou Linux)
 ------------------------------------------------------------
-Test-NetConnection 127.0.0.1 -Port 5672
-    -> se False: Start-Service RabbitMQ (terminal como admin)
+Abra 3 abas de terminal e rode um comando em cada:
 
+    ABA 1 — servidor:
+        dotnet run --project YellowDevilServer
 
-BUILD (uma vez)
+    ABA 2 — cliente com o boss:
+        dotnet run --project YellowDevilClient -- http://localhost:5254 boss
+
+    ABA 3 — cliente vazio:
+        dotnet run --project YellowDevilClient -- http://localhost:5254
+
+Navegador (opcional): http://localhost:5255
+
+Atalho no Linux (abre as 3 abas sozinho):
+    ./devil.sh grpc
+
+1.2 RODANDO NO CODESPACES
 ------------------------------------------------------------
-cd C:\Users\haji\Documents\YellowDev
-dotnet build
+a) Abra a aba "PORTS" (ao lado do TERMINAL no VS Code),
+   clique em "Forward a Port" e adicione a porta:
+
+        5255    (pagina da sala no navegador)
+
+   Depois: botao direito nela > Port Visibility > PUBLIC.
+
+b) Abra 3 terminais integrados e rode um comando em cada
+   (os MESMOS comandos de 1.1 — os clientes rodam DENTRO do
+    Codespace, entao o localhost:5254 deles funciona normal):
+
+        TERMINAL 1:  dotnet run --project YellowDevilServer
+        TERMINAL 2:  dotnet run --project YellowDevilClient -- http://localhost:5254 boss
+        TERMINAL 3:  dotnet run --project YellowDevilClient -- http://localhost:5254
+
+c) Navegador: NUNCA use localhost no Codespaces! Na aba PORTS,
+   clique no icone de globo/link da porta 5255 (ou copie a
+   "Forwarded Address"):
+
+        https://SEU-CODESPACE-5255.app.github.dev
+
+   OBS: nao use "./devil.sh grpc" no Codespaces — ele tenta
+   abrir abas de terminal grafico, que nao existem la.
+
+1.3 ROTEIRO DA DEMO gRPC
+------------------------------------------------------------
+    - no cliente BOSS (aba 2), ENTER teleporta o monstro
+      para o servidor
+    - no cliente VAZIO (aba 3), ENTER invoca o monstro
+      de volta
+    - a pagina da porta 5255 mostra a sala ao vivo
+
+Para encerrar o bloco: Ctrl+C em cada aba.
+
+
 
 
 ============================================================
- DEMO 1 — gRPC (3 abas)
+============================================================
+ BLOCO 2 — DEMO MOM (RabbitMQ)
+============================================================
 ============================================================
 
-ABA 1 — servidor:
-    dotnet run --project YellowDevilServer
+Antes de rodar a demo, o broker RabbitMQ precisa estar de pe.
+Faca o passo 2.1 do SEU ambiente (a instalacao e uma vez so).
 
-ABA 2 — cliente com o boss:
-    dotnet run --project YellowDevilClient -- http://localhost:5254 boss
+2.1a BROKER NO WINDOWS — instalar (uma vez so)
+------------------------------------------------------------
+PowerShell COMO ADMINISTRADOR, um comando por vez:
 
-ABA 3 — cliente vazio:
-    dotnet run --project YellowDevilClient -- http://localhost:5254
+    choco install rabbitmq -y
 
-(opcional) navegador: http://localhost:5255
+    & 'C:\Program Files\RabbitMQ Server\rabbitmq_server-4.3.1\sbin\rabbitmq-plugins.bat' enable rabbitmq_management rabbitmq_web_stomp
 
+    Restart-Service RabbitMQ
 
-============================================================
- DEMO 2 — MOM / RabbitMQ (4 abas)
-============================================================
+(Se a versao instalada for outra, ajuste o numero na pasta
+ rabbitmq_server-X.Y.Z do segundo comando.)
 
-ABA 1 — orquestrador:
-    dotnet run --project MomOrchestrator
+Conferir se esta de pe (sempre, antes da demo):
 
-ABA 2 — consumidor terminal-A:
-    dotnet run --project MomConsumer -- terminal-A
+    Get-Service RabbitMQ | Select Status        -> "Running"
+    Test-NetConnection 127.0.0.1 -Port 5672     -> "TcpTestSucceeded : True"
 
-ABA 3 — consumidor terminal-B:
-    dotnet run --project MomConsumer -- terminal-B
+Se estiver parado (terminal como administrador):
 
-ABA 4 — front:
-    cd MomFront
-    python -m http.server 8080
+    Start-Service RabbitMQ
+
+2.1b BROKER NO LINUX — instalar/subir (uma vez so, pede sudo)
+------------------------------------------------------------
+    ./devil.sh broker
+
+2.1c BROKER NO CODESPACES — instalar (uma vez so)
+------------------------------------------------------------
+    sudo apt-get update -qq
+    sudo apt-get install -y rabbitmq-server
+    sudo rabbitmq-plugins enable rabbitmq_management rabbitmq_web_stomp
+    sudo systemctl enable --now rabbitmq-server
+
+Conferir se subiu:
+
+    sudo systemctl status rabbitmq-server       -> "active (running)"
+
+(O Codespace hiberna; ao reabri-lo em outro dia, o broker sobe
+ sozinho, mas confira com o status acima.)
+
+2.2 RODANDO LOCAL (Windows ou Linux)
+------------------------------------------------------------
+Abra 4 abas de terminal e rode um comando em cada:
+
+    ABA 1 — orquestrador:
+        dotnet run --project MomOrchestrator
+
+    ABA 2 — consumidor terminal-A:
+        dotnet run --project MomConsumer -- terminal-A
+
+    ABA 3 — consumidor terminal-B:
+        dotnet run --project MomConsumer -- terminal-B
+
+    ABA 4 — front:
+        cd MomFront
+        python -m http.server 8080          (no Linux: python3)
 
 Navegador:
-    http://localhost:8080    -> front da demo
-    http://localhost:15672   -> RabbitMQ Management (guest/guest)
+    http://localhost:8080     -> front da demo
+    http://localhost:15672    -> RabbitMQ Management (guest/guest)
+
+Atalho no Linux (abre as 4 abas e o navegador sozinho):
+    ./devil.sh mom
+
+2.3 RODANDO NO CODESPACES
+------------------------------------------------------------
+a) ENCAMINHAR AS PORTAS  << PASSO MAIS IMPORTANTE >>
+   Na aba "PORTS", clique em "Forward a Port" e adicione
+   UMA POR UMA:
+
+        8080     front web da demo
+        15674    WebSocket do front  << SEM ESSA NAO CONECTA >>
+        15672    Management (opcional, para mostrar as filas)
+
+   Depois, para CADA porta: botao direito > Port Visibility
+   > PUBLIC.
+   (Privada, o WebSocket e bloqueado pelo login do GitHub —
+    esse era o motivo de "nao conectar com as portas abertas".)
+
+b) Abra 4 terminais integrados e rode um comando em cada:
+
+        TERMINAL 1:  dotnet run --project MomOrchestrator
+        TERMINAL 2:  dotnet run --project MomConsumer -- terminal-A
+        TERMINAL 3:  dotnet run --project MomConsumer -- terminal-B
+        TERMINAL 4:  cd MomFront && python3 -m http.server 8080
+
+c) Navegador: NUNCA use localhost no Codespaces! Na aba PORTS,
+   clique no icone de globo/link de cada porta:
+
+        https://SEU-CODESPACE-8080.app.github.dev    -> front
+        https://SEU-CODESPACE-15672.app.github.dev   -> Management (guest/guest)
+
+   O front descobre sozinho a URL publica do WebSocket (troca
+   o -8080 por -15674 no endereco) — nada para configurar.
+
+   Plano B sem navegador:  ./devil.sh invocar
+
+   OBS: nao use "./devil.sh mom" no Codespaces — ele tenta
+   abrir abas de terminal grafico, que nao existem la.
+
+2.4 ROTEIRO DA DEMO MOM
+------------------------------------------------------------
+    - clique INVOCAR no front: o boss se divide entre
+      terminal-A, terminal-B e o navegador
+    - Ctrl+C num consumidor no meio do teleporte => as
+      particulas dele sao REENTREGUES ao outro
+      (aparece "<< REENTREGUE!" no log)
+    - ATIRAR (ou tecla ESPACO) publica na fila devil-hits
+    - DEVOLVER manda o boss de volta ao servidor
+    - no Management (porta 15672) da para mostrar as filas
+      devil-summons, devil-particles e devil-hits ao vivo
+
+
 
 
 ============================================================
  PARAR TUDO
 ============================================================
-Ctrl+C em cada aba (o broker continua rodando como servico)
+Ctrl+C em cada aba. O broker continua rodando como servico.
+Para derruba-lo tambem:
+
+    Windows:            Stop-Service RabbitMQ
+    Linux/Codespaces:   sudo systemctl stop rabbitmq-server
 
 
 ============================================================
- PLANO B — RODAR NO GITHUB CODESPACES
+ SE DER ERRADO (checklist rapido)
 ============================================================
-Funciona, mas ABRA O CODESPACE NO VS CODE DESKTOP
-("Open in VS Code Desktop"), NAO no navegador.
-
-Motivo: o front do MOM conecta em ws://localhost:15674 e a
-sala do gRPC usa ws://<host>/ws. No Desktop as portas viram
-localhost de verdade e os dois funcionam. No Codespaces pelo
-navegador as portas viram https://...app.github.dev e o ws://
-e bloqueado (mixed content) -> as duas telas web quebram.
-Os terminais (2 consumidores + orquestrador) funcionam nos
-dois casos.
-
-O devil.sh NAO ajuda aqui: "broker" usa systemctl (nao existe
-no container) e "grpc"/"mom" procuram terminal grafico. No
-Codespaces e tudo na mao, com os comandos abaixo.
-
-
-PASSO 1 — .NET 10 (a imagem padrao nao tem)
-------------------------------------------------------------
-curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-export PATH="$HOME/.dotnet:$PATH"
-echo 'export PATH="$HOME/.dotnet:$PATH"' >> ~/.bashrc
-dotnet --version        # tem que dizer 10.x
-
-
-PASSO 2 — RabbitMQ (so para a Demo 2)
-------------------------------------------------------------
-sudo apt-get update
-sudo apt-get install -y rabbitmq-server
-    -> o "invoke-rc.d ... failed" no fim e ESPERADO (sem systemd)
-
-sudo rabbitmq-plugins enable rabbitmq_management rabbitmq_web_stomp
-sudo service rabbitmq-server start
-    -> se o service falhar:  sudo -u rabbitmq rabbitmq-server -detached
-
-Conferir (o equivalente do Test-NetConnection):
-    ./devil.sh status
-    -> 5672, 15672 e 15674 tem que aparecer de pe
-
-
-PASSO 3 — BUILD (uma vez)
-------------------------------------------------------------
-dotnet build
-
-
-PASSO 4 — AS DEMOS
-------------------------------------------------------------
-Mesmos comandos das secoes DEMO 1 e DEMO 2 la em cima, um por
-terminal do VS Code (icone + / split, em vez de abas do SO).
-
-
-PASSO 5 — PORTAS (aba PORTS do VS Code)
-------------------------------------------------------------
-Encaminhar / conferir: 5255, 8080, 15672, 15674
-    -> 15674 precisa estar encaminhada mesmo sem abrir no
-       navegador: e por ela que o front do MOM fala STOMP
-    -> se alguma porta so aparecer depois que o processo sobe,
-       clique "Forward a Port" e adicione na mao
-
-Depois disso os links do roteiro valem igual:
-    http://localhost:8080    -> front da demo
-    http://localhost:15672   -> Management UI (guest/guest)
-    http://localhost:5255    -> sala do gRPC
-
-
-SE O FRONT WEB NAO CONECTAR
-------------------------------------------------------------
-Plano B sem navegador (publica direto na fila):
-    ./devil.sh invocar terminal
--> o boss se divide entre terminal-A e terminal-B do mesmo
-   jeito, e da para tirar print / apresentar so com terminal.
+1. Front diz "Falha no WebSocket"?
+   -> broker de pe? plugin web_stomp habilitado? porta 15674
+      encaminhada E publica (Codespaces)?
+2. Consumidor C# nao conecta?
+   -> porta 5672: confira o broker (2.1 do seu ambiente).
+3. Pagina abre mas nada acontece no Codespaces?
+   -> voce abriu por localhost em vez da URL publica da
+      aba PORTS.
+4. "address already in use" na 8080?
+   -> ja tem um http.server rodando; feche a aba antiga.
+5. ./devil.sh status (Linux/Codespaces) mostra o que esta
+   de pe em cada porta.

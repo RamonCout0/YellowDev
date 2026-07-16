@@ -347,13 +347,25 @@ function devolver() {
 }
 
 // ---- Conexão STOMP ----------------------------------------------------------
+// Local (Linux/Windows): ws://localhost:15674/ws, como sempre foi.
+// GitHub Codespaces: a página chega por HTTPS num domínio *.app.github.dev,
+// então o WebSocket precisa ser wss:// e apontar para a URL PÚBLICA da porta
+// 15674 (mesmo hostname da página, trocando o sufixo -8080 por -15674).
+function urlDoBroker() {
+  const h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1' || location.protocol === 'file:') {
+    return 'ws://localhost:15674/ws';
+  }
+  return 'wss://' + h.replace(/-\d+(?=\.)/, '-15674') + '/ws';
+}
+
 function conectar(aoConectar) {
   if (client && client.connected) {
     if (aoConectar) aoConectar();
     return;
   }
   client = new StompJs.Client({
-    brokerURL: 'ws://localhost:15674/ws',
+    brokerURL: urlDoBroker(),
     connectHeaders: { login: 'guest', passcode: 'guest' },
     // Sem reconexão automática: o teleporte se desconecta de propósito e NÃO
     // deve voltar sozinho para a fila (senão roubaria as partículas de novo).
@@ -362,7 +374,7 @@ function conectar(aoConectar) {
 
   client.onConnect = () => {
     setStatus(true);
-    log('Conectado ao broker via STOMP/WebSocket (ws://localhost:15674/ws).');
+    log('Conectado ao broker via STOMP/WebSocket (' + urlDoBroker() + ').');
     // Espelha o BasicQos(1) do C#: prefetch=1 + ack individual => cada partícula
     // vai para UM consumidor e a reentrega fica visível.
     client.subscribe('/queue/devil-particles', onParticula, {

@@ -27,7 +27,8 @@ const botao = document.getElementById('botao');
 const cores = { Y:'#fcd018', O:'#c07800', W:'#ffffff', R:'#e63030' };
 let segurando = false;
 
-const ws = new WebSocket(`ws://${location.host}/ws`);
+// Página em HTTPS (ex.: Codespaces) exige wss://; em HTTP local, ws://.
+const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
 ws.onopen = () => { status.textContent = 'Conectado! Peça o monstro quando ele estiver no servidor.'; botao.disabled = false; };
 ws.onclose = () => { status.textContent = 'Conexão perdida — recarregue a página.'; botao.disabled = true; };
 ws.onmessage = e => {
