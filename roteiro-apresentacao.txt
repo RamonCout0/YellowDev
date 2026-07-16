@@ -1,0 +1,58 @@
+============================================================
+ YELLOW DEVIL — COMANDOS DA APRESENTACAO
+============================================================
+
+CHECAR BROKER (antes de tudo)
+------------------------------------------------------------
+Test-NetConnection 127.0.0.1 -Port 5672
+    -> se False: Start-Service RabbitMQ (terminal como admin)
+
+
+BUILD (uma vez)
+------------------------------------------------------------
+cd C:\Users\haji\Documents\YellowDev
+dotnet build
+
+
+============================================================
+ DEMO 1 — gRPC (3 abas)
+============================================================
+
+ABA 1 — servidor:
+    dotnet run --project YellowDevilServer
+
+ABA 2 — cliente com o boss:
+    dotnet run --project YellowDevilClient -- http://localhost:5254 boss
+
+ABA 3 — cliente vazio:
+    dotnet run --project YellowDevilClient -- http://localhost:5254
+
+(opcional) navegador: http://localhost:5255
+
+
+============================================================
+ DEMO 2 — MOM / RabbitMQ (4 abas)
+============================================================
+
+ABA 1 — orquestrador:
+    dotnet run --project MomOrchestrator
+
+ABA 2 — consumidor terminal-A:
+    dotnet run --project MomConsumer -- terminal-A
+
+ABA 3 — consumidor terminal-B:
+    dotnet run --project MomConsumer -- terminal-B
+
+ABA 4 — front:
+    cd MomFront
+    python -m http.server 8080
+
+Navegador:
+    http://localhost:8080    -> front da demo
+    http://localhost:15672   -> RabbitMQ Management (guest/guest)
+
+
+============================================================
+ PARAR TUDO
+============================================================
+Ctrl+C em cada aba (o broker continua rodando como servico)

@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 #  devil.ps1 — lançador das duas demos do Yellow Devil (Windows / apresentação)
 #  O equivalente no Linux de desenvolvimento é o devil.sh (mesmos comandos).
 #
@@ -45,7 +45,10 @@ function EhAdmin {
 function Aba($nome, $cmd) {
   $wrap = "`$host.UI.RawUI.WindowTitle='$nome'; $cmd; Write-Host ''; Write-Host '--- $nome encerrado ---'"
   if (Get-Command wt -ErrorAction SilentlyContinue) {
-    wt -w 0 nt --title $nome -d $Raiz powershell -NoExit -Command $wrap
+    # o wt trata ";" como separador de comandos dele mesmo — precisa escapar como ";;"
+    # para que o PowerShell receba o ";" literal dentro do -Command.
+    $wrapWt = $wrap -replace ';', ';;'
+    wt -w 0 nt --title $nome -d $Raiz powershell -NoExit -Command $wrapWt
   } else {
     Start-Process powershell -ArgumentList '-NoExit', '-Command', "Set-Location '$Raiz'; $wrap"
   }
@@ -101,7 +104,7 @@ function DemoMom {
   Aba 'MOM orquestrador' 'dotnet run --project MomOrchestrator'
   Aba 'MOM terminal-A'   'Start-Sleep 2; dotnet run --project MomConsumer -- terminal-A'
   Aba 'MOM terminal-B'   'Start-Sleep 3; dotnet run --project MomConsumer -- terminal-B'
-  Aba 'MOM front'        "Set-Location MomFront; python -m http.server $PortaFront"
+  Aba 'MOM front'        "python -m http.server $PortaFront --directory MomFront"
   Write-Host ''
   Start-Sleep -Seconds 1
   Start-Process "http://localhost:$PortaFront"
