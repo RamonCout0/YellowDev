@@ -150,12 +150,17 @@ compila e abre as 4 abas + o navegador. Os passos manuais equivalentes estão ab
 **Windows** — PowerShell **como administrador**:
 
 ```powershell
-winget install --id Erlang.ErlangOTP -e          # o RabbitMQ roda em cima do Erlang
-winget install --id RabbitMQ.RabbitMQServer -e   # instala e registra o serviço do Windows
+choco install rabbitmq -y   # o Chocolatey já instala o Erlang junto
 # habilita os plugins (ajuste a versão na pasta):
 & 'C:\Program Files\RabbitMQ Server\rabbitmq_server-4.1.0\sbin\rabbitmq-plugins.bat' enable rabbitmq_management rabbitmq_web_stomp
 Restart-Service RabbitMQ
 ```
+
+> **Não use `winget`:** o RabbitMQ Server **não tem pacote winget**. A
+> [documentação oficial](https://www.rabbitmq.com/docs/install-windows) suporta só
+> **Chocolatey** ou o **instalador `.exe`**. Sem o Chocolatey, instale na mão — primeiro o
+> [Erlang/OTP 64-bit](https://www.erlang.org/downloads) (como admin), depois o
+> `rabbitmq-server-*.exe`.
 
 **Linux (Ubuntu/Debian)**:
 

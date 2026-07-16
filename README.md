@@ -32,11 +32,14 @@ querem mostrar.
 ### Windows (notebook da apresentação)
 
 ```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass   # se o script for bloqueado
-.\devil.ps1 broker    # uma vez só, como ADMINISTRADOR: instala o RabbitMQ via winget
-.\devil.ps1 grpc      # Demo 1
-.\devil.ps1 mom       # Demo 2
+.\devil.cmd broker    # uma vez só, como ADMINISTRADOR: instala o RabbitMQ (via Chocolatey)
+.\devil.cmd grpc      # Demo 1
+.\devil.cmd mom       # Demo 2
 ```
+
+> **Use o `devil.cmd`, não o `.ps1` direto.** Duplo-clique num `.ps1` abre o **Bloco de
+> Notas** em vez de executar, e a política de execução do PowerShell costuma bloquear
+> scripts locais. O `.cmd` é um atalho que chama o `devil.ps1` com a política liberada.
 
 ### Linux (desenvolvimento)
 
@@ -47,8 +50,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass   # se o script for b
 ```
 
 > **Sem Docker.** O broker roda **nativo**, como serviço do sistema: no Windows via
-> `winget` (Erlang + RabbitMQ), no Linux via `apt`. O `broker` só precisa rodar **uma
-> vez** — depois ele sobe sozinho junto com a máquina.
+> **Chocolatey** (`choco install rabbitmq`, que já traz o Erlang), no Linux via `apt`. O
+> `broker` só precisa rodar **uma vez** — depois ele sobe sozinho junto com a máquina.
+> O RabbitMQ **não tem pacote winget**; se não quiser o Chocolatey, dá para usar o
+> [instalador oficial](https://www.rabbitmq.com/docs/install-windows) (Erlang primeiro).
 
 ### Os outros comandos
 

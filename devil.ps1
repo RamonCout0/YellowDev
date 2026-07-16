@@ -4,7 +4,7 @@
 #
 #    .\devil.ps1 grpc     Demo 1 — gRPC  (servidor + 2 clientes)
 #    .\devil.ps1 mom      Demo 2 — MOM   (orquestrador + 2 consumidores + front)
-#    .\devil.ps1 broker   instala/sobe o RabbitMQ via winget (uma vez só, pede admin)
+#    .\devil.ps1 broker   instala/sobe o RabbitMQ (uma vez só, pede admin)
 #    .\devil.ps1 status   o que está de pé agora
 #    .\devil.ps1 stop     derruba as demos
 #
@@ -113,42 +113,78 @@ function DemoMom {
 }
 
 # ------------------------------------------------------------------ broker --
+# NÃO existe pacote winget do RabbitMQ Server. A documentação oficial
+# (https://www.rabbitmq.com/docs/install-windows) suporta dois caminhos no
+# Windows: Chocolatey (que já resolve o Erlang sozinho) ou o instalador .exe.
+# Usamos o Chocolatey; se não houver, instruímos e saímos sem mexer na máquina.
 function Broker {
-  Titulo 'RabbitMQ nativo via winget (sem Docker)'
+  Titulo 'RabbitMQ nativo (sem Docker)'
 
   if (PortaAberta $PortaAmqp) {
     Ok "já está de pé na porta $PortaAmqp"
   } else {
     if (-not (EhAdmin)) {
       Erro 'este comando precisa de PowerShell COMO ADMINISTRADOR'
-      Info 'clique com o botão direito no PowerShell > "Executar como administrador" e rode de novo'
+      Info 'menu Iniciar > digite "PowerShell" > botão direito > "Executar como administrador"'
       exit 1
     }
-    if (-not (Get-Service RabbitMQ -ErrorAction SilentlyContinue)) {
-      Info 'instalando Erlang/OTP (o RabbitMQ roda em cima dele)...'
-      winget install --id Erlang.ErlangOTP -e --accept-source-agreements --accept-package-agreements
-      Info 'instalando o RabbitMQ Server...'
-      winget install --id RabbitMQ.RabbitMQServer -e --accept-source-agreements --accept-package-agreements
-      Info 'o winget registra o RabbitMQ como serviço do Windows'
+
+    $servico = Get-Service -Name 'RabbitMQ*' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $servico) {
+      if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        Erro 'o RabbitMQ não está instalado e não achei o Chocolatey para instalá-lo'
+        Write-Host ''
+        Info 'Opção 1 — instale o Chocolatey (uma vez) e rode este comando de novo:'
+        Write-Host '    Set-ExecutionPolicy Bypass -Scope Process -Force' -ForegroundColor Cyan
+        Write-Host "    [System.Net.ServicePointManager]::SecurityProtocol = 3072" -ForegroundColor Cyan
+        Write-Host "    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))" -ForegroundColor Cyan
+        Write-Host ''
+        Info 'Opção 2 — instale na mão (Erlang PRIMEIRO, depois o RabbitMQ):'
+        Write-Host '    https://www.erlang.org/downloads      (Erlang/OTP 64-bit, como admin)' -ForegroundColor Cyan
+        Write-Host '    https://www.rabbitmq.com/docs/install-windows   (rabbitmq-server-*.exe)' -ForegroundColor Cyan
+        Write-Host ''
+        Info 'depois de qualquer uma das duas, rode:  .\devil.ps1 broker'
+        exit 1
+      }
+      Info 'instalando o RabbitMQ via Chocolatey (ele já traz o Erlang junto)...'
+      choco install rabbitmq -y
+      if ($LASTEXITCODE -ne 0) { Erro 'o choco install falhou — veja a saída acima'; exit 1 }
+      $servico = Get-Service -Name 'RabbitMQ*' -ErrorAction SilentlyContinue | Select-Object -First 1
     }
-    Start-Service RabbitMQ -ErrorAction SilentlyContinue
+
+    if ($servico) { Start-Service $servico.Name -ErrorAction SilentlyContinue }
     Start-Sleep -Seconds 5
   }
 
   # Os plugins ficam num .bat dentro do sbin da versão instalada.
-  $plugins = Get-ChildItem 'C:\Program Files\RabbitMQ Server\rabbitmq_server-*\sbin\rabbitmq-plugins.bat' -ErrorAction SilentlyContinue |
-             Select-Object -First 1
-  if (-not $plugins) {
-    Erro 'não encontrei o rabbitmq-plugins.bat — o RabbitMQ instalou mesmo?'
-    Info 'confira em: C:\Program Files\RabbitMQ Server\'
+  $plugins = Get-ChildItem 'C:\Program Files\RabbitMQ Server\rabbitmq_server-*\sbin\rabbitmq-plugins.bat' `
+                           -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($plugins) {
+    Info 'habilitando os plugins management + web_stomp...'
+    & $plugins.FullName enable rabbitmq_management rabbitmq_web_stomp
+  } elseif (Get-Command rabbitmq-plugins -ErrorAction SilentlyContinue) {
+    Info 'habilitando os plugins management + web_stomp (via PATH)...'
+    rabbitmq-plugins enable rabbitmq_management rabbitmq_web_stomp
+  } else {
+    Erro 'não encontrei o rabbitmq-plugins.bat'
+    Info 'procure a pasta sbin em: C:\Program Files\RabbitMQ Server\rabbitmq_server-*\sbin'
+    Info 'e rode ali:  .\rabbitmq-plugins.bat enable rabbitmq_management rabbitmq_web_stomp'
     exit 1
   }
-  Info 'habilitando os plugins management + web_stomp...'
-  & $plugins.FullName enable rabbitmq_management rabbitmq_web_stomp
-  Restart-Service RabbitMQ -ErrorAction SilentlyContinue
-  Start-Sleep -Seconds 5
 
-  if (PortaAberta $PortaAmqp) { Ok 'broker no ar' } else { Erro 'o broker não subiu'; exit 1 }
+  $servico = Get-Service -Name 'RabbitMQ*' -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($servico) { Restart-Service $servico.Name -ErrorAction SilentlyContinue }
+  Start-Sleep -Seconds 6
+
+  if (PortaAberta $PortaAmqp) { Ok 'broker no ar' } else {
+    Erro 'o broker não subiu'
+    Info 'confira o serviço:  Get-Service RabbitMQ*'
+    exit 1
+  }
+  if (-not (PortaAberta $PortaStomp)) {
+    Erro "porta $PortaStomp (web-stomp) fechada — o front JS não vai conectar"
+    Info 'o plugin rabbitmq_web_stomp habilitou mesmo? reinicie o serviço e tente de novo'
+  }
   Write-Host ''
   Ok "AMQP $PortaAmqp (C#) | STOMP/WS $PortaStomp (front JS) | UI http://localhost:$PortaUi (guest/guest)"
 }
