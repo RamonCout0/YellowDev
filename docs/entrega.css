@@ -1,0 +1,115 @@
+/* ===========================================================================
+   Estilo dos PDFs de ENTREGA (entrega-grpc.html e entrega-mom.html).
+   Os slides da apresentação têm estilo próprio, em apresentacao.html.
+   Regerar os PDFs:  ./docs/gerar-pdf.sh
+   ---------------------------------------------------------------------------
+   As duas entregas aceitam no MÁXIMO 2 páginas cada — o gerar-pdf.sh falha se
+   passar disso. Mexeu no texto? Rode o gerador e confira.
+   =========================================================================== */
+@page { size: A4; margin: 11mm; }
+
+* { box-sizing: border-box; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8.9pt;
+  line-height: 1.35;
+  color: #1a1a1a;
+  margin: 0;
+}
+h1 { font-size: 21pt; margin: 0 0 3px; letter-spacing: -.3px; }
+.sub   { font-size: 10pt; color: #555; margin: 0 0 2px; }
+.autor { font-size: 8.6pt; color: #555; font-style: italic; margin: 0 0 6px; }
+.regua { border: 0; border-top: 3px solid #d9a900; margin: 0 0 12px; }
+
+h2 {
+  font-size: 11.5pt;
+  margin: 14px 0 5px;
+  padding-bottom: 3px;
+  border-bottom: 2px solid #d9a900;
+}
+p { margin: 0 0 7px; text-align: justify; }
+b, strong { color: #000; }
+code { font-family: "Courier New", monospace; font-size: 9pt; }
+
+/* Faixa de destaque — a resposta que o professor procura primeiro. */
+.abordagem {
+  background: #fdf8e0;
+  border: 1.5px solid #d9a900;
+  border-left: 6px solid #d9a900;
+  padding: 7px 11px;
+  margin: 8px 0 4px;
+  font-size: 10pt;
+}
+.abordagem .rot { font-size: 8pt; color: #8a6d00; letter-spacing: .6px; display: block; }
+
+/* ---- Diagrama ------------------------------------------------------------ */
+.diagrama { margin: 10px 0 4px; }
+.fileira  { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.caixa {
+  background: #fdf8e0;
+  border: 1.5px solid #4a4a2a;
+  border-radius: 3px;
+  padding: 6px 8px;
+  text-align: center;
+  min-width: 108px;
+}
+.caixa .t { font-weight: bold; font-size: 8.8pt; display: block; }
+.caixa .d { font-size: 7.4pt; color: #555; display: block; line-height: 1.3; }
+.fila {
+  background: #fff;
+  border: 1.5px dashed #b8860b;
+  border-radius: 12px;
+  padding: 6px 10px;
+  text-align: center;
+  min-width: 120px;
+}
+.fila .t { font-family: "Courier New", monospace; font-weight: bold; font-size: 8.6pt; display: block; }
+.fila .d { font-size: 7.2pt; color: #666; display: block; }
+.seta   { font-size: 7.2pt; color: #333; text-align: center; white-space: nowrap; padding: 0 2px; }
+.seta b { display: block; font-size: 13pt; line-height: 1; color: #d9a900; }
+.descida { text-align: center; font-size: 7.2pt; color: #333; margin: 3px 0; }
+.descida b { display: block; font-size: 13pt; line-height: 1; color: #d9a900; }
+.legenda { text-align: center; font-size: 7.6pt; color: #555; font-style: italic; margin: 5px 0 0; }
+
+/* ---- Capturas ------------------------------------------------------------ */
+.figura { margin: 6px 0 3px; }
+/* Altura fixa + largura proporcional: a borda abraça o print seja qual for a
+   proporção dele, e é a altura que faz a página 2 fechar.                    */
+.figura img {
+  height: 71mm;
+  width: auto;
+  max-width: 100%;
+  border: 1.5px solid #999;
+  display: block;
+  margin: 0 auto;
+}
+.cap { font-size: 7.8pt; font-weight: bold; margin: 2px 0 7px; line-height: 1.3; }
+
+/* Placeholder: só aparece enquanto o print de verdade não entrou. */
+.falta {
+  border: 2px dashed #d82800;
+  background: #fff6f4;
+  color: #a01f00;
+  height: 71mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 8.2pt;
+  line-height: 1.45;
+}
+.falta b { display: block; font-size: 9.6pt; margin-bottom: 4px; color: #d82800; }
+
+/* ---- Perguntas e respostas ----------------------------------------------- */
+.pergunta { margin: 0 0 7px; }
+.pergunta .q { font-weight: bold; font-size: 9.4pt; color: #000; margin: 0 0 2px; }
+.pergunta p { margin: 0; }
+
+/* ---- Tabela simples ------------------------------------------------------ */
+table.grade { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 8.2pt; }
+table.grade th, table.grade td { border: 1px solid #bbb; padding: 3px 6px; text-align: left; }
+table.grade th { background: #fdf8e0; }
+table.grade td.mono { font-family: "Courier New", monospace; font-size: 7.8pt; }
+
+.pagina2 { page-break-before: always; }

@@ -68,12 +68,29 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
+    /* Mudo: fixo no canto e SEMPRE visível — os outros botões são contextuais
+       e somem, mas cortar o som tem que estar sempre a um clique. */
+    #mudo {
+      position: fixed;
+      top: 10px;
+      right: 12px;
+      z-index: 10;
+      font-size: 17px;
+      padding: 5px 9px;
+      background: #1a1a28;
+      color: #f8d800;
+      border: 2px solid #3a3a4a;
+      box-shadow: 2px 2px #000;
+    }
+    #mudo:hover { filter: brightness(1.6); }
     #status { font-size: 12px; margin-bottom: 6px; }
     #status.on { color: #58f858; }
     #status.off { color: #d82800; }
   </style>
 </head>
 <body>
+  <button id="mudo" title="Música ligada — clique para desligar (tecla M)">🔊</button>
+
   <h1>⚡ YELLOW DEVIL — TELETRANSPORTE DISTRIBUÍDO ⚡</h1>
   <div id="janela">janela-????</div>
 
@@ -95,7 +112,7 @@
 
   <pre id="log"></pre>
 
-  <!-- Música do boss (loop). Coloque assets/boss-theme.mp3 manualmente (não versionado). -->
+  <!-- Música do boss (loop). Só ambientação — o front funciona sem ela. -->
   <audio id="bossTheme" src="assets/boss-theme.mp3" loop></audio>
 
   <script src="stomp.umd.min.js"></script>

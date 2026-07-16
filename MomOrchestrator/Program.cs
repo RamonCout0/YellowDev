@@ -7,7 +7,7 @@ using RabbitMQ.Client.Events;
 //  MomOrchestrator — o "desintegrador" do Yellow Devil
 // ----------------------------------------------------------------------------
 //  Papel no MOM (Middleware Orientado a Mensagens):
-//   * Declara as 3 filas duráveis do estudo de caso.
+//   * Declara as 4 filas duráveis do estudo de caso.
 //   * Consome "devil-summons": a cada chamado, quebra o boss em partículas
 //     (uma por pixel do sprite), embaralha e publica todas em "devil-particles".
 //   * Consome "devil-hits": mantém o HP autoritativo do boss.

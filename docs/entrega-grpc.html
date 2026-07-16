@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>Entrega Yellow Devil — gRPC</title>
+<link rel="stylesheet" href="entrega.css" />
+<style>
+  /* Setas do diagrama cliente <-> servidor: só existem nesta entrega. */
+  .rpc { flex: 1; text-align: center; }
+  .rpc .via {
+    font-size: 7.8pt; font-weight: bold; color: #6a5200;
+    font-family: "Courier New", monospace; margin-bottom: 1px;
+  }
+  .rpc .linha { position: relative; height: 11px; margin-bottom: 6px; }
+  .rpc .linha::before {
+    content: ""; position: absolute; top: 5px; left: 4%; right: 4%;
+    border-top: 2px solid #4a4a2a;
+  }
+  .rpc .pontaD, .rpc .pontaE {
+    position: absolute; top: 0; font-size: 11pt; line-height: 1; color: #4a4a2a;
+  }
+  .rpc .pontaD { right: 0; }
+  .rpc .pontaE { left: 0; }
+</style>
+</head>
+<body>
+
+<h1>Yellow Devil gRPC</h1>
+<p class="sub">Teletransporte remoto de um chefe de Mega Man (1987) entre processos via gRPC</p>
+<p class="autor">Disciplina: Desenvolvimento de Sistemas Distribuídos &nbsp;|&nbsp; Ramon Couto Santos &amp; Aaron Goldberg Guerra</p>
+<hr class="regua" />
+
+<h2>Descrição do problema</h2>
+<p>
+O sistema simula o <b>teletransporte do Yellow Devil</b>, chefe de <i>Mega Man</i> (1987), entre <b>dois
+processos distintos</b>. O monstro é famoso por se desmontar em partículas, atravessar a tela e se remontar
+do outro lado — e é exatamente essa mecânica que vira comunicação remota aqui. O sprite ASCII 52×36 é
+representado como um conjunto de <b>1.328 partículas</b> (pixels com posição X/Y e cor), e <b>cada partícula
+é uma mensagem Protocol Buffers</b>. O cliente desintegra o monstro no seu terminal e transmite as
+partículas ao servidor por <b>streaming</b>; o servidor <b>reconstrói o desenho partícula a partícula, em
+tempo real</b>, no terminal dele. Uma segunda operação permite pedir o monstro de volta, invertendo o
+sentido do streaming. O objetivo é demonstrar, de forma visual e imediata, como o gRPC transmite dados
+estruturados entre processos separados a partir de <b>um único contrato <code>.proto</code> compartilhado</b>.
+</p>
+
+<div class="abordagem">
+  <span class="rot">CONTRATO</span>
+  <b>Um serviço gRPC</b> (<code>YellowDevilTransfer</code>) com <b>duas operações remotas</b>
+  (<code>Teleport</code> e <code>TeleportBack</code>) e a <b>mensagem composta</b>
+  <code>DevilPart</code>, de 4 atributos. Contrato completo em
+  <code>YellowDevilServer/Protos/yellow_devil.proto</code>.
+</div>
+
+<h2>Diagrama da comunicação cliente &lt;-&gt; servidor</h2>
+
+<div class="diagrama">
+  <div class="fileira">
+    <div class="caixa" style="min-width:130px">
+      <span class="t">CLIENTE gRPC</span>
+      <span class="d">
+        Console .NET · Grpc.Net.Client<br />
+        stub <i>YellowDevilTransferClient</i><br />
+        desintegra o sprite em DevilPart
+      </span>
+    </div>
+
+    <div class="rpc">
+      <div class="via">Teleport (stream DevilPart) → ReassemblyStatus</div>
+      <div class="linha"><span class="pontaD">▶</span></div>
+      <div class="via">TeleportBack (ReturnRequest) → stream DevilPart</div>
+      <div class="linha"><span class="pontaE">◀</span></div>
+    </div>
+
+    <div class="caixa" style="min-width:130px">
+      <span class="t">SERVIDOR gRPC</span>
+      <span class="d">
+        ASP.NET Core · Grpc.AspNetCore<br />
+        herda <i>YellowDevilTransferBase</i><br />
+        remonta o sprite recebido
+      </span>
+    </div>
+  </div>
+
+  <p class="legenda">
+    Uma única conexão HTTP/2 (o canal gRPC, porta 5254) carrega os dois sentidos de streaming.
+    O cliente chama o stub como se fosse um método local; Protobuf, HTTP/2 e rede ficam no código gerado.
+  </p>
+</div>
+
+<h2>Mensagem composta e operações</h2>
+
+<table class="grade">
+  <tr>
+    <th style="width:26%">Elemento do contrato</th>
+    <th style="width:20%">Tipo</th>
+    <th>Papel</th>
+  </tr>
+  <tr>
+    <td class="mono">DevilPart</td>
+    <td>mensagem composta<br />(4 atributos)</td>
+    <td><code>part_id</code> (ordem) · <code>pixel_data</code> (cor, em <code>bytes</code>) ·
+        <code>target_x</code> e <code>target_y</code> (onde encaixar). A posição viaja <b>junto</b> com o
+        pixel: o receptor não guarda estado para saber onde desenhar.</td>
+  </tr>
+  <tr>
+    <td class="mono">ReassemblyStatus</td>
+    <td>mensagem composta<br />(2 atributos)</td>
+    <td><code>is_complete</code> + <code>message</code>: confirmação <b>tipada</b> ao fim da ida, em vez de
+        um retorno vazio.</td>
+  </tr>
+  <tr>
+    <td class="mono">Teleport</td>
+    <td>client streaming</td>
+    <td><b>Operação 1 (ida):</b> as ~1.328 partículas fluem do cliente para o servidor num só stream.</td>
+  </tr>
+  <tr>
+    <td class="mono">TeleportBack</td>
+    <td>server streaming</td>
+    <td><b>Operação 2 (volta):</b> o cliente pede uma vez e o servidor empurra as partículas de volta.
+        <code>ReturnRequest.shuffle</code> deixa o cliente decidir se voltam embaralhadas.</td>
+  </tr>
+</table>
+
+<!-- ====================== PÁGINA 2 ====================== -->
+<div class="pagina2">
+
+<h2>Capturas de tela do sistema em funcionamento</h2>
+
+<div class="figura">
+  <img src="../assets/exemplo1.png" alt="Yellow Devil montado no terminal do cliente antes do teleporte" />
+</div>
+<p class="cap">
+  Figura 1 — Yellow Devil montado no terminal do <b>cliente</b>, antes do teleporte. O rodapé mostra o
+  controle: <code>ENTER</code> envia o monstro para o servidor.
+</p>
+
+<div class="figura">
+  <img src="../assets/exemplo2.png" alt="Partículas saindo do cliente e sendo reconstruídas no servidor" />
+</div>
+<p class="cap">
+  Figura 2 — O teleporte em andamento, com os <b>dois processos lado a lado</b>: à esquerda o cliente
+  (<i>“Teleportando…”</i>) se desintegrando conforme envia as <code>DevilPart</code>; à direita o servidor
+  (<i>“Aguardando partículas…”</i>) desenhando cada partícula <b>à medida que chega pelo stream</b>.
+</p>
+
+<h2>Justificativa das decisões de implementação</h2>
+<p>
+Usamos <b>C#</b> com <code>Grpc.AspNetCore</code> e <code>Grpc.Net.Client</code> por familiaridade e porque
+o pacote <code>Grpc.Tools</code> <b>gera os stubs no próprio <code>dotnet build</code></b>, sem passo manual.
+Optamos por <b>streaming nos dois sentidos</b> (client streaming na ida, server streaming na volta) porque o
+problema é naturalmente incremental: cada pixel é uma unidade independente, e <b>é o stream em andamento que
+produz a animação</b> de desmontar e remontar. Uma RPC unária por partícula custaria 1.328 idas e voltas; um
+único campo <code>repeated</code> entregaria o boss num piscar, sem animação. A mensagem
+<code>DevilPart</code> concentra ordem, cor e posição de destino para ser <b>auto-suficiente</b>, mantendo o
+contrato simples. Os dados ficam <b>em memória</b> (<code>List</code>/<code>Dictionary</code>), pois o escopo
+dispensa persistência, e o servidor protege o estado com <code>lock</code> para que, se dois clientes pedirem
+o monstro juntos, só o primeiro leve. O <b>terminal</b> foi escolhido como interface para eliminar GUI e
+manter o foco na comunicação remota, que é o objetivo da atividade.
+</p>
+
+</div><!-- /pagina2 -->
+
+</body>
+</html>

@@ -32,6 +32,7 @@ const statusEl = document.getElementById('status');
 const btnInvocar = document.getElementById('invocar');
 const btnAtirar = document.getElementById('atirar');
 const btnDevolver = document.getElementById('devolver');
+const btnMudo = document.getElementById('mudo');
 const divisor = document.getElementById('divisor');
 
 // ---- Estado ----------------------------------------------------------------
@@ -53,6 +54,46 @@ function setStatus(on) {
   statusEl.className = on ? 'on' : 'off';
   statusEl.textContent = on ? '● conectado ao broker (STOMP/ws:15674)' : '● desconectado';
 }
+
+// A trilha do chefe toca enquanto o chefe está AQUI. Saiu o boss (derrotado,
+// devolvido ou teletransportado para outra janela), para a música — senão ela
+// fica em loop durante o resto da apresentação.
+function pararMusica() {
+  audio.pause();
+  audio.currentTime = 0; // o próximo INVOCAR recomeça a trilha do início
+}
+
+// ---- Efeitos sonoros (Web Audio) --------------------------------------------
+// Sintetizados na hora, sem arquivo: onda quadrada + queda de frequência é
+// exatamente como o NES fazia esses sons. O AudioContext só pode nascer depois
+// de um gesto do usuário, por isso é criado na primeira vez que alguém atira.
+let ctxAudio = null;
+
+function bipe({ de, para, dur, tipo = 'square', vol = 0.16 }) {
+  if (audio.muted) return;               // o mudo vale para tudo, não só a música
+  try {
+    ctxAudio = ctxAudio || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ctxAudio.currentTime;
+    const osc = ctxAudio.createOscillator();
+    const ganho = ctxAudio.createGain();
+    osc.type = tipo;
+    osc.frequency.setValueAtTime(de, t);
+    osc.frequency.exponentialRampToValueAtTime(para, t + dur);
+    ganho.gain.setValueAtTime(vol, t);
+    ganho.gain.exponentialRampToValueAtTime(0.0001, t + dur); // decai, não corta seco
+    osc.connect(ganho).connect(ctxAudio.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  } catch (e) {
+    /* navegador sem Web Audio: o tiro continua funcionando, só fica mudo */
+  }
+}
+
+// "Pew" do buster: agudo caindo rápido para grave.
+const somTiro = () => bipe({ de: 1250, para: 180, dur: 0.11 });
+
+// Explosão do chefe: grave, mais longo e mais sujo (dente de serra).
+const somDerrota = () => bipe({ de: 420, para: 40, dur: 0.55, tipo: 'sawtooth', vol: 0.22 });
 
 // Botões contextuais: sem o boss => só INVOCAR; com o boss => ATIRAR + DEVOLVER.
 function atualizaBotoes() {
@@ -203,6 +244,7 @@ function onParticula(msg) {
     clearTimeout(timerMontagem);
     atualizaBotoes();
     animDesintegrar(() => {
+      pararMusica();
       log(`✦ Boss teletransportado para '${p.chamadoPor}'. Desconectando SEM ack (a partícula volta pra fila).`);
       client.deactivate(); // sem ack => reentrega para quem chamou
     });
@@ -256,6 +298,7 @@ function finalizaMontagem(total) {
 // ---- Atirar (botão ATIRAR ou tecla ESPAÇO) ---------------------------------
 function atirar() {
   if (!bossCompleto || !client || !client.connected) return;
+  somTiro();
   animTiro();
   hpLocal = Math.max(0, hpLocal - 1);
   redrawAll();
@@ -269,6 +312,7 @@ function atirar() {
   // HP zerou => o boss é derrotado, recupera a vida e volta pro servidor.
   // (O orquestrador também detecta o HP 0 e restaura o estado autoritativo.)
   if (hpLocal === 0) {
+    somDerrota();
     log('☠ Boss DERROTADO! Recupera a vida e volta para o servidor...');
     bossCompleto = false;
     clearTimeout(timerMontagem);
@@ -276,6 +320,7 @@ function atirar() {
     animDesintegrar(() => {
       hpLocal = 28;
       redrawAll();
+      pararMusica();
       log('↩ Boss de volta ao servidor (HP 28/28). Clique INVOCAR para chamá-lo de novo.');
     });
   }
@@ -296,6 +341,7 @@ function devolver() {
   animDesintegrar(() => {
     hpLocal = 28;
     redrawAll();
+    pararMusica();
     log('↩ Boss devolvido ao servidor. Outra janela já pode INVOCAR.');
   });
 }
@@ -327,7 +373,7 @@ function conectar(aoConectar) {
   };
   client.onStompError = (frame) => log('STOMP erro: ' + (frame.headers['message'] || '?'));
   client.onWebSocketClose = () => setStatus(false);
-  client.onWebSocketError = () => log('Falha no WebSocket — o RabbitMQ está de pé (docker compose up -d)?');
+  client.onWebSocketError = () => log('Falha no WebSocket — o RabbitMQ está de pé? Rode "devil broker" e confira o plugin web_stomp (porta 15674).');
 
   client.activate();
 }
@@ -349,8 +395,21 @@ btnInvocar.addEventListener('click', () => {
 btnAtirar.addEventListener('click', atirar);
 btnDevolver.addEventListener('click', devolver);
 
-// Tecla ESPAÇO = atirar (atalho do botão ATIRAR).
+// ---- Mudo -------------------------------------------------------------------
+// Usa audio.muted, e não pause(): assim o mudo é uma preferência independente do
+// ciclo do boss (pararMusica() continua mandando no play/pause).
+function alternaMudo() {
+  audio.muted = !audio.muted;
+  btnMudo.textContent = audio.muted ? '🔇' : '🔊';
+  btnMudo.title = audio.muted
+    ? 'Música desligada — clique para ligar (tecla M)'
+    : 'Música ligada — clique para desligar (tecla M)';
+}
+btnMudo.addEventListener('click', alternaMudo);
+
+// Teclas: ESPAÇO = atirar · M = mudo.
 window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM') { alternaMudo(); return; }
   if (e.code !== 'Space') return;
   e.preventDefault();
   atirar();

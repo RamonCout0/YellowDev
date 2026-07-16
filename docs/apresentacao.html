@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>Yellow Devil — Apresentação</title>
+<style>
+/* ============================================================================
+   Slides 16:9 para PROJETAR (não é o PDF de entrega — esses são os
+   entrega-*.html). Regerar:  ./docs/gerar-pdf.sh
+   Regra de ouro deste arquivo: fonte grande e pouco texto por slide. Quem lê
+   de longe não enxerga 10pt. Se precisar diminuir a fonte para caber, é sinal
+   de que o slide tem conteúdo demais — quebre em dois.
+   ========================================================================== */
+@page { size: 338.667mm 190.5mm; margin: 0; }   /* 16:9, padrão de projetor */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0a0a12;
+  color: #e8e8f0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.slide {
+  width: 338.667mm;
+  height: 190.5mm;
+  padding: 13mm 16mm 11mm;
+  page-break-after: always;
+  position: relative;
+  background: #0a0a12;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.slide:last-child { page-break-after: auto; }
+
+/* Numeração e marca discretas no rodapé. */
+.slide::after {
+  content: attr(data-n);
+  position: absolute; right: 16mm; bottom: 5mm;
+  font-size: 10pt; color: #44445a;
+}
+.slide::before {
+  content: "YELLOW DEVIL · Sistemas Distribuídos";
+  position: absolute; left: 16mm; bottom: 5mm;
+  font-size: 9pt; color: #33334a; letter-spacing: .5px;
+}
+
+h1 { font-size: 30pt; color: #f8d800; letter-spacing: -.5px; line-height: 1.1; }
+h2 {
+  font-size: 25pt; color: #f8d800; line-height: 1.15;
+  border-bottom: 3px solid #2a2a3a; padding-bottom: 5px; margin-bottom: 11px;
+}
+h2 small { font-size: 12pt; color: #6a6a80; display: block; letter-spacing: 1px; margin-bottom: 2px; }
+p  { font-size: 14.5pt; line-height: 1.45; margin-bottom: 9px; }
+b  { color: #fff; }
+.am { color: #f8d800; }         /* amarelo: o boss / o que importa */
+.az { color: #38c8f8; }         /* azul: comandos, ações do usuário */
+.vd { color: #58f858; }         /* verde: resultado bom */
+.vm { color: #ff6a4a; }         /* vermelho: falha / alerta */
+.cz { color: #9a9ab0; }
+code, .mono { font-family: "Courier New", monospace; }
+
+ul { list-style: none; }
+li {
+  font-size: 14.5pt; line-height: 1.4; margin-bottom: 8px;
+  padding-left: 20px; position: relative;
+}
+li::before { content: "▸"; position: absolute; left: 0; color: #f8d800; }
+li small { display: block; font-size: 11.5pt; color: #9a9ab0; line-height: 1.35; margin-top: 1px; }
+
+/* ---- Capa ---------------------------------------------------------------- */
+.capa { justify-content: center; align-items: center; text-align: center; }
+.capa img { width: 78%; border: 3px solid #2a2a3a; margin-bottom: 14px; }
+.capa h1 { font-size: 34pt; margin-bottom: 6px; }
+.capa .lema { font-size: 16pt; color: #9a9ab0; margin-bottom: 18px; }
+.capa .quem { font-size: 13pt; color: #6a6a80; }
+
+/* ---- Divisória de parte -------------------------------------------------- */
+.parte { justify-content: center; align-items: center; text-align: center; }
+.parte .rot { font-size: 13pt; color: #6a6a80; letter-spacing: 4px; margin-bottom: 8px; }
+.parte h1 { font-size: 52pt; margin-bottom: 10px; }
+.parte .sub { font-size: 17pt; color: #9a9ab0; max-width: 72%; line-height: 1.4; }
+
+/* ---- Blocos -------------------------------------------------------------- */
+.caixa {
+  background: #12121e; border: 2px solid #2a2a3a; border-radius: 5px;
+  padding: 10px 14px;
+}
+.caixa.destaque { border-color: #f8d800; background: #1a1608; }
+.caixa .rot { font-size: 10pt; color: #8a8a9a; letter-spacing: 1px; display: block; margin-bottom: 3px; }
+
+/* Por padrão a linha NÃO cresce: as caixas ficam da altura do conteúdo (a mais
+   alta manda), em vez de esticarem até o rodapé com o texto boiando no topo.
+   Use .duas.fill quando a linha tiver figura e precisar ocupar o slide todo. */
+.duas { display: flex; gap: 14px; align-items: stretch; }
+.duas.fill { flex: 1; }
+.duas > * { flex: 1; }
+
+/* Terminal / contrato: o que substitui abrir o editor na sala. */
+pre {
+  background: #05050a; border: 2px solid #222; border-left: 5px solid #f8d800;
+  border-radius: 4px; padding: 10px 13px;
+  font-family: "Courier New", monospace; font-size: 12.5pt; line-height: 1.45;
+  color: #d8d8e8; white-space: pre; overflow: hidden;
+}
+pre.cmd { border-left-color: #38c8f8; font-size: 13.5pt; }
+pre .cm { color: #6a7a6a; }      /* comentário */
+pre .kw { color: #f8d800; }      /* palavra-chave */
+pre .st { color: #38c8f8; }      /* stream / destaque */
+pre .pr { color: #58f858; }      /* prompt */
+
+/* ---- Diagrama ------------------------------------------------------------ */
+.fluxo { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.no {
+  background: #12121e; border: 2px solid #3a3a4a; border-radius: 5px;
+  padding: 8px 10px; text-align: center; min-width: 118px;
+}
+.no.am { border-color: #f8d800; }
+.no .t { font-size: 12.5pt; font-weight: bold; color: #fff; display: block; }
+.no .d { font-size: 10pt; color: #9a9ab0; display: block; line-height: 1.3; margin-top: 2px; }
+.no .p { font-size: 9.5pt; color: #f8d800; font-family: "Courier New", monospace; display: block; }
+.fila {
+  background: #05050a; border: 2px dashed #f8d800; border-radius: 16px;
+  padding: 8px 12px; text-align: center;
+}
+.fila .t { font-family: "Courier New", monospace; font-size: 12.5pt; color: #f8d800; font-weight: bold; display: block; }
+.fila .d { font-size: 9.5pt; color: #9a9ab0; display: block; }
+.seta { text-align: center; color: #f8d800; font-size: 20pt; line-height: 1; }
+.seta small { display: block; font-size: 9pt; color: #8a8a9a; font-family: "Courier New", monospace; }
+.desce { text-align: center; color: #f8d800; font-size: 20pt; line-height: 1.1; margin: 4px 0; }
+.desce small { display: block; font-size: 10pt; color: #9a9ab0; font-family: Arial; }
+
+/* ---- Tabela -------------------------------------------------------------- */
+table { width: 100%; border-collapse: collapse; font-size: 12.5pt; }
+th, td { border: 1px solid #2a2a3a; padding: 6px 9px; text-align: left; vertical-align: top; }
+th { background: #1a1a28; color: #f8d800; font-size: 12pt; }
+td.mono { font-family: "Courier New", monospace; font-size: 11.5pt; color: #38c8f8; }
+
+/* ---- Figuras ------------------------------------------------------------- */
+.fig { text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+/* max-height em % NÃO funciona aqui: dentro de um flex com flex-basis:0 o
+   percentual não resolve e a imagem estoura o slide. Por isso cada figura
+   grande recebe um max-height explícito, calculado para o espaço que sobra. */
+.fig img { max-width: 100%; border: 2px solid #2a2a3a; margin: 0 auto; }
+.fig .leg { font-size: 11pt; color: #9a9ab0; margin-top: 6px; }
+
+.nota {
+  font-size: 12pt; color: #9a9ab0; border-left: 4px solid #38c8f8;
+  padding: 5px 0 5px 10px; margin-top: auto;
+}
+.nota b { color: #38c8f8; }
+</style>
+</head>
+<body>
+
+<!-- ==================== 1 · CAPA ==================== -->
+<section class="slide capa" data-n="1">
+  <img src="../assets/capagRPC.png" alt="Capa do projeto Yellow Devil" />
+  <h1>YELLOW DEVIL</h1>
+  <p class="lema">O mesmo boss, <span class="am">dois paradigmas</span> de comunicação distribuída</p>
+  <p class="quem">Ramon Couto Santos &amp; Aaron Goldberg Guerra · Desenvolvimento de Sistemas Distribuídos</p>
+</section>
+
+<!-- ==================== 2 · O TEMA ==================== -->
+<section class="slide" data-n="2">
+  <h2><small>O TEMA</small>Por que um chefe de Mega Man?</h2>
+  <div class="duas fill">
+    <div style="flex:1.15">
+      <p>
+        O <b class="am">Yellow Devil</b> (Mega Man, 1987) é famoso por uma coisa só:
+        ele <b>se desmonta em partículas</b>, atravessa a tela e <b>se remonta do outro lado</b>.
+        Só dá para acertá-lo nesse trânsito.
+      </p>
+      <p>
+        Isso <b>já é</b> um sistema distribuído: um estado que sai de um lugar,
+        viaja em pedaços independentes e é reconstruído em outro.
+      </p>
+      <div class="caixa destaque" style="margin-top:6px">
+        <span class="rot">A REGRA DO PROJETO</span>
+        <p style="font-size:16pt; margin:0">
+          O sprite tem <b class="am">52 × 36</b> e <b class="am">1.328 pixels</b> não-vazios.<br />
+          <b>1 pixel = 1 mensagem.</b> <b class="am">1.328 mensagens = 1 boss.</b>
+        </p>
+      </div>
+      <p style="margin-top:9px" class="cz">
+        Se as mensagens chegam, o monstro aparece. Se alguma se perde, fica um buraco nele.
+        <b class="az">O desenho é o log.</b>
+      </p>
+    </div>
+    <div class="fig" style="flex:0.85">
+      <img src="../assets/exemplo1.png" alt="Yellow Devil montado num terminal" />
+      <p class="leg">O boss montado num terminal — 1.328 partículas no lugar</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 3 · OS DOIS TRABALHOS ==================== -->
+<section class="slide" data-n="3">
+  <h2><small>A IDEIA</small>Mesmo boss, mesmo sprite, dois transportes</h2>
+  <p class="cz" style="margin-bottom:11px">
+    Os dois trabalhos resolvem <b>o mesmo problema</b> com tecnologias diferentes.
+    Trocamos só <b class="am">o meio pelo qual a partícula viaja</b> — e é essa a comparação.
+  </p>
+  <table>
+    <tr>
+      <th style="width:22%"></th>
+      <th style="width:39%">TRABALHO 1 · gRPC</th>
+      <th style="width:39%">TRABALHO 2 · MOM</th>
+    </tr>
+    <tr>
+      <td><b>A partícula vira</b></td>
+      <td>uma mensagem de um <b class="am">stream RPC</b></td>
+      <td>uma mensagem <b class="am">numa fila</b> disputada</td>
+    </tr>
+    <tr>
+      <td><b>Tecnologia</b></td>
+      <td>Protocol Buffers + HTTP/2</td>
+      <td>RabbitMQ (AMQP + STOMP)</td>
+    </tr>
+    <tr>
+      <td><b>Quem conhece quem</b></td>
+      <td>cliente sabe o <b>endereço</b> do servidor</td>
+      <td>ninguém sabe de ninguém — só o <b>nome da fila</b></td>
+    </tr>
+    <tr>
+      <td><b>Se o outro lado cai</b></td>
+      <td>o stream <b class="vm">quebra</b> — a chamada falha</td>
+      <td>a mensagem <b class="vd">volta pra fila</b> e é reentregue a outro</td>
+    </tr>
+    <tr>
+      <td><b>O que vamos provar</b></td>
+      <td>o boss se remonta <b>no outro processo</b>, partícula a partícula, pelo stream</td>
+      <td><b class="am">666 + 662 = 1.328</b> — cada mensagem foi para <b>um só</b> consumidor</td>
+    </tr>
+    <tr>
+      <td><b>Comando</b></td>
+      <td class="mono">devil grpc</td>
+      <td class="mono">devil mom</td>
+    </tr>
+  </table>
+  <div class="nota">
+    <b>Roteiro de hoje:</b> primeiro o gRPC (chamada remota tipada), depois o MOM (fila desacoplada).
+    No fim, comparamos os dois no mesmo problema.
+  </div>
+</section>
+
+<!-- ==================== 4 · PARTE 1 ==================== -->
+<section class="slide parte" data-n="4">
+  <p class="rot">PARTE 1</p>
+  <h1 class="am">gRPC</h1>
+  <p class="sub">Chamar um método que está <b class="am">na outra máquina</b> como se fosse local — com contrato tipado e streaming</p>
+</section>
+
+<!-- ==================== 5 · O QUE É RPC ==================== -->
+<section class="slide" data-n="5">
+  <h2><small>CONCEITO</small>O que é RPC, e o que o gRPC acrescenta</h2>
+  <div class="duas">
+    <div class="caixa">
+      <span class="rot">RPC — REMOTE PROCEDURE CALL</span>
+      <p style="font-size:15pt">
+        Eu chamo <code class="am">client.Teleport(...)</code>.<br />
+        <b>Parece</b> um método local.<br />
+        <b class="az">Executa</b> em outro processo, em outra máquina.
+      </p>
+      <p class="cz" style="font-size:12.5pt; margin:0">
+        Serialização, rede e protocolo ficam escondidos. É esse "esconder" que dá nome à sigla.
+      </p>
+    </div>
+    <div class="caixa">
+      <span class="rot">O QUE O gRPC ACRESCENTA</span>
+      <ul style="margin-top:4px">
+        <li><b class="am">Contrato .proto</b><small>um arquivo define as mensagens e as operações — os dois lados nascem dele</small></li>
+        <li><b class="am">Código gerado</b><small>o compilador escreve o stub; ninguém escreve rede à mão</small></li>
+        <li><b class="am">HTTP/2 + streaming</b><small>uma conexão só, aberta, nos dois sentidos</small></li>
+        <li><b class="am">Binário (Protobuf)</b><small>poucos bytes por mensagem, em vez de JSON</small></li>
+      </ul>
+    </div>
+  </div>
+  <div class="nota">
+    <b>Guarde esta palavra:</b> <b>contrato</b>. É dele que sai tudo — cliente, servidor e a garantia de que
+    os dois falam a mesma língua.
+  </div>
+</section>
+
+<!-- ==================== 6 · O CONTRATO ==================== -->
+<section class="slide" data-n="6">
+  <h2><small>O CONTRATO · yellow_devil.proto</small>Tudo começa por este arquivo</h2>
+  <pre><span class="cm">// A mensagem COMPOSTA: 4 atributos. A posição viaja JUNTO com o pixel.</span>
+<span class="kw">message</span> DevilPart {
+  <span class="kw">int32</span> part_id    = 1;   <span class="cm">// a ordem do pedaço</span>
+  <span class="kw">bytes</span> pixel_data = 2;   <span class="cm">// a cor daquele pixel</span>
+  <span class="kw">int32</span> target_x   = 3;   <span class="cm">// onde ele se encaixa...</span>
+  <span class="kw">int32</span> target_y   = 4;   <span class="cm">// ...do outro lado</span>
+}
+
+<span class="cm">// O serviço: UM serviço, DUAS operações remotas.</span>
+<span class="kw">service</span> YellowDevilTransfer {
+  <span class="cm">// IDA: as partes fluem do cliente para o servidor</span>
+  <span class="kw">rpc</span> Teleport     (<span class="st">stream</span> DevilPart) <span class="kw">returns</span> (ReassemblyStatus);
+
+  <span class="cm">// VOLTA: o cliente pede e as partes fluem de volta</span>
+  <span class="kw">rpc</span> TeleportBack (ReturnRequest)    <span class="kw">returns</span> (<span class="st">stream</span> DevilPart);
+}</pre>
+  <div class="nota">
+    <b>Repare no <code>stream</code>:</b> ele aparece na <b>entrada</b> da primeira operação e na
+    <b>saída</b> da segunda. Esse detalhe é o que faz o boss se desmontar e se remontar animado.
+  </div>
+</section>
+
+<!-- ==================== 7 · POR QUE ASSIM ==================== -->
+<section class="slide" data-n="7">
+  <h2><small>PERGUNTA DO PROFESSOR</small>Por que definimos o contrato assim?</h2>
+  <ul>
+    <li><b>Por que <span class="am">streaming</span> e não uma chamada normal?</b>
+      <small>São 1.328 partículas. Uma RPC por partícula = 1.328 idas e voltas (lento).
+      Um <code>repeated</code> com tudo dentro = o boss aparece de uma vez, <b>sem animação</b>.
+      O stream resolve os dois: <b>uma conexão</b>, e o servidor desenha <b>cada partícula à medida que chega</b>.</small></li>
+    <li><b>Por que <span class="am">DevilPart</span> carrega a posição?</b>
+      <small>Porque assim a mensagem é <b>auto-suficiente</b>: o receptor não guarda estado nenhum
+      para saber onde encaixar o pedaço. Chegou, desenhou.</small></li>
+    <li><b>Por que <span class="am">pixel_data</span> é <code>bytes</code> e não string?</b>
+      <small>Para não amarrar o contrato a um formato de cor. Hoje é uma letra da paleta;
+      poderia virar RGB <b>sem quebrar o .proto</b>.</small></li>
+    <li><b>Por que devolver <span class="am">ReassemblyStatus</span> em vez de nada?</b>
+      <small>Confirmação <b>tipada</b> no fim da ida: <code>is_complete</code> + <code>message</code>.
+      O cliente sabe que o monstro chegou inteiro.</small></li>
+  </ul>
+</section>
+
+<!-- ==================== 8 · COMO FLUI ==================== -->
+<section class="slide" data-n="8">
+  <h2><small>PASSO A PASSO</small>Como a comunicação acontece</h2>
+  <div class="fluxo" style="margin-bottom:9px">
+    <div class="no am" style="min-width:150px">
+      <span class="t">CLIENTE</span>
+      <span class="d">console .NET<br />Grpc.Net.Client</span>
+      <span class="p">stub</span>
+    </div>
+    <div class="seta" style="flex:1">
+      ────────▶
+      <small>1· Teleport(stream DevilPart) — 1.328 mensagens no MESMO stream</small>
+      <br />◀────────
+      <small>2· ReassemblyStatus — "reconstruído com 1328 partes!"</small>
+    </div>
+    <div class="no am" style="min-width:150px">
+      <span class="t">SERVIDOR</span>
+      <span class="d">ASP.NET Core<br />Grpc.AspNetCore</span>
+      <span class="p">porta 5254 · HTTP/2</span>
+    </div>
+  </div>
+  <div class="duas" style="flex:0.9">
+    <div class="fig">
+      <img src="../assets/exemplo2.png" alt="Cliente se desintegrando e servidor remontando" />
+    </div>
+  </div>
+  <p class="cz" style="font-size:12.5pt; text-align:center; margin-top:6px">
+    À esquerda o <b>cliente</b> se desintegrando (<i>“Teleportando…”</i>) · à direita o <b>servidor</b>
+    remontando (<i>“Aguardando partículas…”</i>) — <b class="am">dois processos, um stream</b>
+  </p>
+  <div class="nota">
+    <b>Detalhe que vale citar:</b> o servidor guarda quem é o "dono" do monstro com um <code>lock</code>.
+    Se dois clientes pedirem ao mesmo tempo, <b>só o primeiro leva</b> — o outro recebe um stream vazio.
+  </div>
+</section>
+
+<!-- ==================== 9 · CÓDIGO GERADO ==================== -->
+<section class="slide" data-n="9">
+  <h2><small>PERGUNTA DO PROFESSOR</small>O que o compilador Protobuf gera sozinho?</h2>
+  <p class="cz" style="margin-bottom:9px">
+    Ninguém escreve nada disso à mão. O pacote <b class="am">Grpc.Tools</b> roda o <code>protoc</code>
+    <b>durante o <code class="az">dotnet build</code></b> e gera, a partir do <code>.proto</code>:
+  </p>
+  <table>
+    <tr><th style="width:52%">Arquivo gerado</th><th>O que tem dentro</th></tr>
+    <tr>
+      <td class="mono">YellowDevilServer/obj/…/Protos/YellowDevil.cs</td>
+      <td>as classes das mensagens (<code>DevilPart</code>, <code>ReassemblyStatus</code>…) + serialização</td>
+    </tr>
+    <tr>
+      <td class="mono">YellowDevilServer/obj/…/Protos/YellowDevilGrpc.cs</td>
+      <td><b>YellowDevilTransferBase</b> — a classe que o <b>servidor herda</b></td>
+    </tr>
+    <tr>
+      <td class="mono">YellowDevilClient/obj/…/YellowDevil.cs</td>
+      <td>as mesmas classes de mensagem, do lado do cliente</td>
+    </tr>
+    <tr>
+      <td class="mono">YellowDevilClient/obj/…/YellowDevilGrpc.cs</td>
+      <td><b>YellowDevilTransferClient</b> — o <b class="am">stub</b> que o cliente chama</td>
+    </tr>
+  </table>
+  <div class="nota">
+    <b>Quem decide o que gerar</b> é o <code>GrpcServices</code> no <code>.csproj</code>:
+    <code>Server</code> num, <code>Client</code> no outro — <b>a partir do mesmo .proto</b>.
+    Fonte única = os dois lados nunca discordam.
+  </div>
+</section>
+
+<!-- ==================== 10 · gRPC vs REST ==================== -->
+<section class="slide" data-n="10">
+  <h2><small>PERGUNTA DO PROFESSOR</small>Por que gRPC e não uma API REST?</h2>
+  <div class="duas">
+    <div class="caixa" style="border-color:#58f858">
+      <span class="rot" style="color:#58f858">AQUI O gRPC GANHA</span>
+      <ul style="margin-top:4px">
+        <li><b>Streaming de verdade</b><small>fluxo contínuo de 1.328 partículas numa conexão só</small></li>
+        <li><b>Contrato tipado</b><small>errou o campo, <b>não compila</b> — em REST só quebra em runtime</small></li>
+        <li><b>Binário compacto</b><small>DevilPart em Protobuf = poucos bytes; em JSON, várias vezes mais — ×1.328</small></li>
+        <li><b>Stub pronto</b><small>sem URL, verbo, status code ou parse manual</small></li>
+      </ul>
+    </div>
+    <div class="caixa" style="border-color:#d82800">
+      <span class="rot" style="color:#ff6a4a">ONDE O REST GANHARIA</span>
+      <ul style="margin-top:4px">
+        <li><b>Consumidor genérico</b><small>se fosse qualquer navegador chamando, sem stub</small></li>
+        <li><b>Chamadas esporádicas e avulsas</b><small>um CRUD comum, sem fluxo contínuo</small></li>
+        <li><b>Depurar na mão</b><small>com REST dá para usar curl e ler o JSON a olho nu</small></li>
+      </ul>
+      <p class="cz" style="font-size:12pt; margin-top:6px">
+        Não é o nosso caso: aqui é <b>fluxo contínuo entre dois processos que nós controlamos</b>.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 11 · EXECUTAR gRPC ==================== -->
+<section class="slide" data-n="11">
+  <h2><small>MÃO NA MASSA</small>Como executar e conectar — gRPC</h2>
+  <div class="duas">
+    <div style="flex:1.1">
+      <pre class="cmd"><span class="cm"># Um comando abre as 3 abas:</span>
+<span class="pr">$</span> ./devil.sh grpc          <span class="cm"># Linux</span>
+<span class="pr">></span> .\devil.ps1 grpc         <span class="cm"># Windows</span>
+
+<span class="cm"># O que ele faz por baixo:</span>
+<span class="pr">$</span> dotnet build             <span class="cm"># restaura + GERA OS STUBS + compila</span>
+<span class="pr">$</span> dotnet run --project YellowDevilServer
+<span class="pr">$</span> dotnet run --project YellowDevilClient -- \
+        http://localhost:5254 <span class="st">boss</span>   <span class="cm"># nasce COM o monstro</span>
+<span class="pr">$</span> dotnet run --project YellowDevilClient -- \
+        http://localhost:5254          <span class="cm"># nasce vazio</span></pre>
+      <p style="font-size:13pt; margin-top:8px">
+        <b class="az">Controles:</b> <code>ENTER</code> com o monstro = <b>teleporta pro servidor</b> ·
+        <code>ENTER</code> sem o monstro = <b>invoca de volta</b>
+      </p>
+    </div>
+    <div style="flex:0.9">
+      <div class="caixa destaque">
+        <span class="rot">COMO CONECTAR</span>
+        <p style="font-size:13.5pt; margin-bottom:5px">
+          O cliente recebe <b class="am">o endereço do servidor</b> como argumento — é só isso que ele precisa saber.
+        </p>
+        <pre style="font-size:11.5pt; border-left-color:#f8d800; padding:7px 10px"><span class="cm"># outro PC, mesma rede:</span>
+dotnet run --project YellowDevilClient -- \
+   http://<span class="st">192.168.0.10</span>:5254 boss</pre>
+      </div>
+      <div class="caixa" style="margin-top:9px">
+        <span class="rot">PORTAS</span>
+        <p style="font-size:13pt; margin:0">
+          <b class="am">5254</b> — clientes gRPC (HTTP/2)<br />
+          <b class="am">5255</b> — modo sala: qualquer um abre
+          <code>http://IP:5255</code> no <b>navegador</b>, sem instalar nada
+        </p>
+      </div>
+      <p class="cz" style="font-size:11.5pt; margin-top:8px">
+        No Windows, liberar antes:
+        <code style="font-size:10.5pt">netsh advfirewall firewall add rule … localport=5254,5255</code>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 12 · PARTE 2 ==================== -->
+<section class="slide parte" data-n="12">
+  <p class="rot">PARTE 2</p>
+  <h1 class="am">MOM</h1>
+  <p class="sub">Middleware Orientado a Mensagens: ninguém chama ninguém —
+    todo mundo fala com <b class="am">uma fila no meio</b></p>
+</section>
+
+<!-- ==================== 13 · O QUE É MOM ==================== -->
+<section class="slide" data-n="13">
+  <h2><small>CONCEITO</small>O que muda quando entra um broker</h2>
+  <div class="duas" style="flex:0; margin-bottom:11px">
+    <div class="caixa">
+      <span class="rot">NO gRPC (parte 1)</span>
+      <p style="font-size:14pt; margin:0">
+        O cliente <b>precisa saber</b> onde o servidor está: <code class="am">http://192.168.0.10:5254</code>.<br />
+        Os dois têm que estar <b>online ao mesmo tempo</b>. Se o servidor cai, a chamada <b class="vm">falha</b>.
+      </p>
+    </div>
+    <div class="caixa destaque">
+      <span class="rot">NO MOM (parte 2)</span>
+      <p style="font-size:14pt; margin:0">
+        Produtor e consumidor só conhecem <b class="am">o nome da fila</b>.<br />
+        Não sabem o endereço um do outro. <b>Nem precisam estar online juntos.</b>
+      </p>
+    </div>
+  </div>
+  <p style="font-size:15pt; margin-bottom:6px"><b>O broker (RabbitMQ) desacopla em três eixos:</b></p>
+  <ul>
+    <li><b class="am">No tempo</b><small>a fila é durável: o produtor publica agora, o consumidor pega depois — pode nem estar ligado</small></li>
+    <li><b class="am">No espaço</b><small>ninguém sabe endereço nem porta de ninguém; todos sabem só do broker</small></li>
+    <li><b class="am">Em linguagem e protocolo</b><small>nosso back-end fala <b>AMQP</b> (C#) e o navegador fala <b>STOMP/WebSocket</b> (JavaScript) — <b>nas mesmas filas</b>, porque o broker traduz</small></li>
+  </ul>
+</section>
+
+<!-- ==================== 14 · OPÇÃO A ==================== -->
+<section class="slide" data-n="14">
+  <h2><small>PERGUNTA DO PROFESSOR</small>Por que Fila e não Publicar/Assinar?</h2>
+  <div class="caixa destaque" style="margin-bottom:11px">
+    <p style="font-size:17pt; margin:0; text-align:center">
+      Escolhemos a <b class="am">Opção A — Fila de Mensagens</b> (ponto-a-ponto / <i>work queue</i>)
+    </p>
+  </div>
+  <div class="duas">
+    <div class="caixa" style="border-color:#58f858">
+      <span class="rot" style="color:#58f858">FILA · o que o problema pede</span>
+      <p style="font-size:14pt">
+        Cada partícula tem que ser desenhada <b>por UM consumidor só</b>.
+        A fila <b class="am">reparte</b> as 1.328 entre quem estiver ativo.
+      </p>
+      <p style="font-size:13pt; margin:0" class="cz">
+        Se dois desenhassem o mesmo pixel, o boss sairia <b>duplicado</b> em vez de <b>repartido</b>.
+      </p>
+    </div>
+    <div class="caixa" style="border-color:#d82800">
+      <span class="rot" style="color:#ff6a4a">PUB/SUB · o que aconteceria</span>
+      <p style="font-size:14pt">
+        Cada assinante receberia <b>uma cópia de TODAS</b> as partículas —
+        o boss inteiro <b>em cada um</b>, em vez de dividido.
+      </p>
+      <p style="font-size:13pt; margin:0" class="cz">
+        Trocaríamos a fila por uma <b>exchange fanout</b>, e cada assinante teria a <b>sua própria fila</b>.
+      </p>
+    </div>
+  </div>
+  <div class="nota">
+    <b>A frase que resume:</b> pub/sub serve para <b>notificar todo mundo</b>.
+    Nós precisávamos <b>repartir tarefas</b> — e isso é fila.
+  </div>
+</section>
+
+<!-- ==================== 15 · AS FILAS ==================== -->
+<section class="slide" data-n="15">
+  <h2><small>PASSO A PASSO</small>Como o MOM funciona aqui</h2>
+  <div class="fluxo">
+    <div class="no">
+      <span class="t">NAVEGADOR</span>
+      <span class="d">botão INVOCAR</span>
+      <span class="p">STOMP/WS 15674</span>
+    </div>
+    <div class="seta">▶<small>1· chamado</small></div>
+    <div class="fila"><span class="t">devil-summons</span><span class="d">fila durável</span></div>
+    <div class="seta">▶<small>2· AMQP 5672</small></div>
+    <div class="no am">
+      <span class="t">ORQUESTRADOR</span>
+      <span class="d">desintegra o boss<br />guarda o HP</span>
+      <span class="p">C# · AMQP</span>
+    </div>
+  </div>
+  <div class="desce">▼<small>3· publica <b class="am">1.328 partículas</b>, uma por pixel</small></div>
+  <div class="fluxo">
+    <div class="fila" style="min-width:62%">
+      <span class="t">devil-particles</span>
+      <span class="d">durável · <b>prefetch=1</b> · <b>ack manual</b> · cada mensagem vai para UM consumidor</span>
+    </div>
+  </div>
+  <div class="desce">▼<small>4· os consumidores <b>disputam</b> a fila (<i>competing consumers</i>)</small></div>
+  <div class="fluxo">
+    <div class="no"><span class="t">terminal-A</span><span class="d">C# · ASCII</span><span class="p">AMQP</span></div>
+    <div class="no"><span class="t">terminal-B</span><span class="d">C# · ASCII</span><span class="p">AMQP</span></div>
+    <div class="no"><span class="t">NAVEGADOR</span><span class="d">JS · canvas</span><span class="p">STOMP/WS</span></div>
+  </div>
+  <div class="nota" style="margin-top:8px">
+    <b>Outras filas:</b> <code>devil-hits</code> (cada tiro) e <code>devil-return</code> (devolver o boss).
+    O navegador <b>publica nelas</b> — ele é <b class="am">produtor E consumidor ao mesmo tempo</b>.
+  </div>
+</section>
+
+<!-- ==================== 16 · A PROVA ==================== -->
+<section class="slide" data-n="16">
+  <h2><small>A PROVA</small>Cada mensagem para um só consumidor</h2>
+  <div class="fig">
+    <img src="../assets/mom-terminais.png" alt="terminal-A com 666 e terminal-B com 662 partículas"
+         style="max-height:106mm" />
+  </div>
+  <div class="duas" style="flex:0; margin-top:9px">
+    <div class="caixa destaque" style="flex:0.75">
+      <p style="font-size:22pt; margin:0; text-align:center" class="am">
+        <b>666 + 662 = 1.328</b>
+      </p>
+      <p style="font-size:11.5pt; margin:0; text-align:center" class="cz">o total exato do sprite</p>
+    </div>
+    <div style="flex:1.25">
+      <p style="font-size:13.5pt; margin:0">
+        Os dois terminais estão <b>no mesmo teleporte</b> e cada um desenhou <b>só a metade que pegou</b> —
+        por isso o boss aparece chuviscado nos dois. <b class="vd">Nenhuma partícula foi processada duas
+        vezes, nenhuma se perdeu.</b>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 17 · O BROKER ==================== -->
+<section class="slide" data-n="17">
+  <h2><small>O BROKER POR DENTRO</small>O que a Management UI mostra</h2>
+  <div class="fig">
+    <img src="../assets/mom-broker.png" alt="Management UI do RabbitMQ com as 4 filas"
+         style="max-height:116mm" />
+  </div>
+  <div class="duas" style="flex:0; margin-top:8px">
+    <div style="flex:1">
+      <p style="font-size:13pt; margin:0">
+        <b class="am">As 4 filas</b>, todas com o selo <b>D</b> = <b>duráveis</b>.
+        <code>devil-particles</code> em <b class="vd">running</b>, entregando a <b>22/s</b>.
+      </p>
+    </div>
+    <div style="flex:1">
+      <p style="font-size:13pt; margin:0">
+        <b class="am">Unacked = 2</b> — a prova do <code>prefetch=1</code>:
+        cada um dos <b>2 consumidores</b> segura <b>uma única</b> mensagem por vez.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 18 · DEMONSTRAÇÕES ==================== -->
+<section class="slide" data-n="18">
+  <h2><small>O QUE VAMOS DEMONSTRAR</small>Quatro coisas, ao vivo</h2>
+  <ul>
+    <li><b class="am">1 · A divisão</b> — dois terminais + o navegador disputando a fila
+      <small>o boss se reparte entre os três; cada partícula aparece <b>num lugar só</b></small></li>
+    <li><b class="vm">2 · A falha e a reentrega</b> — <code>Ctrl+C</code> num consumidor no meio do teleporte
+      <small>as mensagens que ele <b>não confirmou</b> voltam para a fila e são <b>reentregues</b> ao outro:
+      aparece <code class="vm">&lt;&lt; REENTREGUE apos falha!</code>. <b>Nada se perde.</b></small></li>
+    <li><b class="am">3 · Entra e sai consumidor</b> — feche um terminal e invoque de novo
+      <small>o que sobrou recebe <b>as 1.328</b> e monta o boss <b>inteiro</b> — a fila <b>redistribui a
+      carga sozinha</b>, sem ninguém reconfigurar o produtor</small></li>
+    <li><b class="az">4 · O front é produtor também</b> — <code>ESPAÇO</code> atira no boss
+      <small>o tiro vai para <code>devil-hits</code> e o <b>HP autoritativo</b> cai no console do
+      orquestrador: o navegador <b>publica</b> e <b>consome</b> pelo mesmo broker</small></li>
+  </ul>
+</section>
+
+<!-- ==================== 19 · EXECUTAR MOM ==================== -->
+<section class="slide" data-n="19">
+  <h2><small>MÃO NA MASSA</small>Como executar e conectar — MOM</h2>
+  <div class="duas">
+    <div style="flex:1.1">
+      <pre class="cmd"><span class="cm"># 1) o broker — UMA VEZ SÓ na vida da máquina</span>
+<span class="pr">$</span> ./devil.sh broker        <span class="cm"># apt + plugins (Linux)</span>
+<span class="pr">></span> .\devil.ps1 broker       <span class="cm"># winget (Windows, como ADMIN)</span>
+
+<span class="cm"># 2) a demo — abre as 4 abas + o navegador</span>
+<span class="pr">$</span> ./devil.sh mom
+
+<span class="cm"># 3) invocar sem o navegador (plano B)</span>
+<span class="pr">$</span> ./devil.sh invocar
+
+<span class="pr">$</span> ./devil.sh status        <span class="cm"># o que está de pé</span>
+<span class="pr">$</span> ./devil.sh stop          <span class="cm"># derruba as demos</span></pre>
+      <p class="cz" style="font-size:12pt; margin-top:8px">
+        <b class="vm">Sem Docker:</b> o RabbitMQ roda <b>nativo</b>, como serviço do sistema —
+        sobe junto com a máquina.
+      </p>
+    </div>
+    <div style="flex:0.9">
+      <div class="caixa destaque">
+        <span class="rot">COMO CADA UM CONECTA</span>
+        <table style="font-size:12pt; margin-top:4px">
+          <tr><th style="width:30%">Porta</th><th>Quem usa</th></tr>
+          <tr><td class="mono">5672</td><td>back-end <b>C#</b> → broker (<b>AMQP</b>)</td></tr>
+          <tr><td class="mono">15674</td><td>front <b>JS</b> → broker (<b>STOMP/WS</b>)</td></tr>
+          <tr><td class="mono">15672</td><td><b>Management UI</b> — <code>guest/guest</code></td></tr>
+          <tr><td class="mono">8080</td><td>a página do front (<code>http.server</code>)</td></tr>
+        </table>
+      </div>
+      <p style="font-size:12.5pt; margin-top:9px">
+        <b class="az">Ninguém configura endereço de ninguém.</b> Cada componente aponta para o
+        <b>broker</b> e diz o <b>nome da fila</b>. Só.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 20 · FECHAMENTO ==================== -->
+<section class="slide" data-n="20">
+  <h2><small>FECHAMENTO</small>O mesmo boss, os dois paradigmas</h2>
+  <table>
+    <tr>
+      <th style="width:24%"></th>
+      <th style="width:38%">gRPC</th>
+      <th style="width:38%">MOM (fila)</th>
+    </tr>
+    <tr>
+      <td><b>Acoplamento</b></td>
+      <td>cliente conhece o <b>endereço</b> do servidor</td>
+      <td>só o <b class="am">nome da fila</b></td>
+    </tr>
+    <tr>
+      <td><b>Tempo</b></td>
+      <td><b>síncrono</b> — os dois online juntos</td>
+      <td><b class="am">assíncrono</b> — a fila durável guarda</td>
+    </tr>
+    <tr>
+      <td><b>Entrega</b></td>
+      <td>1 cliente ↔ 1 servidor</td>
+      <td><b class="am">N disputam</b>; cada msg para <b>um</b></td>
+    </tr>
+    <tr>
+      <td><b>Contrato</b></td>
+      <td><code>.proto</code> <b>tipado</b>, stub gerado</td>
+      <td>JSON por convenção</td>
+    </tr>
+    <tr>
+      <td><b>Se o outro cai</b></td>
+      <td>o stream <b class="vm">quebra</b></td>
+      <td>a msg <b class="vd">volta pra fila</b> e é reentregue</td>
+    </tr>
+    <tr>
+      <td><b>Serve para</b></td>
+      <td>chamada remota <b>tipada e rápida</b></td>
+      <td><b>repartir trabalho</b> e desacoplar</td>
+    </tr>
+  </table>
+  <p style="font-size:16pt; text-align:center; margin-top:12px" class="am">
+    <b>Obrigado!</b> <span class="cz" style="font-size:13pt">— perguntas?</span>
+  </p>
+</section>
+
+</body>
+</html>

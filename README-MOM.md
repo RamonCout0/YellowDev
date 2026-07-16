@@ -1,9 +1,12 @@
 # Yellow Devil — Teletransporte Distribuído via Fila de Mensagens (MOM)
 
-Trabalho de **Sistemas Distribuídos** — Opção A (Filas de Mensagens, comunicação
+**Trabalho 2** de **Sistemas Distribuídos** — Opção A (Filas de Mensagens, comunicação
 ponto-a-ponto) usando **RabbitMQ** como broker real. Back-end em **C#** (AMQP) e
 front-end em **JavaScript puro** (STOMP sobre WebSocket) — duas linguagens e dois
 protocolos diferentes falando com o **mesmo** broker e as **mesmas** filas.
+
+O trabalho 1 (gRPC, mesmo tema) está em [README-GRPC.md](README-GRPC.md); a visão geral,
+em [README.md](README.md).
 
 ---
 
@@ -129,19 +132,45 @@ propósito para não devolver o boss sem querer ao tentar atirar.
 
 ## 5. Como executar (passo a passo)
 
-> Pré-requisitos: **Docker** (com Compose), **.NET SDK** e **Python 3** (só para servir
-> a pasta do front). O `.mp3` da música **não** está no repositório — coloque-o à mão em
-> `MomFront/assets/boss-theme.mp3` antes de abrir o front (opcional, é só ambientação).
+> Pré-requisitos: **.NET SDK 10.0** e **Python 3** (só para servir a pasta do front).
+> **Não usa Docker** — o RabbitMQ roda **nativo**, como serviço do sistema operacional.
 
-### 1) Subir o broker
+### Atalho: tudo de uma vez
 
 ```bash
-docker compose up -d
+./devil.sh broker && ./devil.sh mom      # Linux
+.\devil.ps1 broker; .\devil.ps1 mom      # Windows (o 'broker' pede ADMINISTRADOR)
 ```
 
-Abra a **Management UI** em <http://localhost:15672> (login **guest** / senha
-**guest**). Em **Admin → Ports and contexts** (ou na aba de conexões) confirme que o
-listener **web-stomp na porta 15674** está ativo — é ele que o navegador usa.
+O `broker` só precisa rodar **uma vez** na vida da máquina. O `mom` confere o broker,
+compila e abre as 4 abas + o navegador. Os passos manuais equivalentes estão abaixo.
+
+### 1) Subir o broker (uma vez só)
+
+**Windows** — PowerShell **como administrador**:
+
+```powershell
+winget install --id Erlang.ErlangOTP -e          # o RabbitMQ roda em cima do Erlang
+winget install --id RabbitMQ.RabbitMQServer -e   # instala e registra o serviço do Windows
+# habilita os plugins (ajuste a versão na pasta):
+& 'C:\Program Files\RabbitMQ Server\rabbitmq_server-4.1.0\sbin\rabbitmq-plugins.bat' enable rabbitmq_management rabbitmq_web_stomp
+Restart-Service RabbitMQ
+```
+
+**Linux (Ubuntu/Debian)**:
+
+```bash
+sudo apt install -y rabbitmq-server
+sudo rabbitmq-plugins enable rabbitmq_management rabbitmq_web_stomp
+sudo systemctl enable --now rabbitmq-server
+```
+
+Os **dois plugins são obrigatórios**: `rabbitmq_management` dá a UI da porta 15672 (é o
+**print do broker em execução** exigido na entrega) e `rabbitmq_web_stomp` abre a porta
+15674, **sem a qual o front JavaScript não conecta**.
+
+Abra a **Management UI** em <http://localhost:15672> (login **guest** / senha **guest**)
+e confirme que o listener **web-stomp na porta 15674** está ativo.
 
 ### 2) Rodar o orquestrador (produtor / HP autoritativo)
 
@@ -149,7 +178,7 @@ listener **web-stomp na porta 15674** está ativo — é ele que o navegador usa
 dotnet run --project MomOrchestrator
 ```
 
-Ele declara as 3 filas e fica aguardando chamados. **Teste isolado:** na Management UI,
+Ele declara as 4 filas e fica aguardando chamados. **Teste isolado:** na Management UI,
 em **Queues → devil-summons → Publish message**, publique o corpo
 `{"chamadoPor":"teste"}`. Confira em **Queues → devil-particles** que aparecem **~1328
 mensagens** acumuladas (ninguém consumindo ainda).
@@ -170,10 +199,10 @@ rodando juntos, publique outro chamado: o boss se **divide** entre `terminal-A` 
 
 ```bash
 cd MomFront
-python -m http.server 8080
+python3 -m http.server 8080
 ```
 
-Abra <http://localhost:8080>. (Coloque `assets/boss-theme.mp3` antes, se quiser música.)
+Abra <http://localhost:8080>.
 
 ---
 
